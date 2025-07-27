@@ -47,4 +47,4 @@ functions/lib/
 *.log
 .vscode/
 .idea/
-google-services.jsonnode_modules/
+google-services.json
