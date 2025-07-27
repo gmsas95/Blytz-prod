@@ -2,7 +2,7 @@ import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {useAuth} from '../context/AuthContext';
 import {AuthNavigator} from './AuthNavigator';
-import {MainNavigator} from './MainNavigator';
+import MainNavigator from './MainNavigator';
 import {SellerNavigator} from './SellerNavigator';
 
 const RootStack = createNativeStackNavigator();

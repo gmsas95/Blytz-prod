@@ -60,14 +60,14 @@ const SellerSignupScreen = () => {
   const handleBankAccountChange = (field: keyof SellerRegistrationData['bankAccount'], value: string) => {
     setFormData(prev => ({
       ...prev,
-      bankAccount: { ...(prev.bankAccount || {}), [field]: value },
+      bankAccount: { ...(prev.bankAccount || { accountNumber: '', bankName: '', accountHolder: '' }), [field]: value },
     }));
   };
 
   const handleBusinessAddressChange = (field: keyof SellerRegistrationData['businessAddress'], value: string) => {
     setFormData(prev => ({
       ...prev,
-      businessAddress: { ...(prev.businessAddress || {}), [field]: value },
+      businessAddress: { ...(prev.businessAddress || { addressLine1: '', city: '', state: '', postalCode: '', country: '' }), [field]: value },
     }));
   };
 

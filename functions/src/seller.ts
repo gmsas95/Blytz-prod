@@ -47,12 +47,12 @@ interface UploadBusinessDocumentsData {
 /**
  * Creates a new seller profile when a user registers as a seller
  */
-export const createSellerProfile = functions.https.onCall(async (data: CreateSellerProfileData, context) => {
-  if (!context.auth) {
+export const createSellerProfile = functions.https.onCall(async (request: functions.https.CallableRequest) => {
+  if (!request.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const userId = context.auth.uid;
+  const userId = request.auth.uid;
   const {
     businessName,
     businessType,
@@ -62,7 +62,7 @@ export const createSellerProfile = functions.https.onCall(async (data: CreateSel
     phoneNumber,
     email,
     businessDescription,
-  } = data;
+  } = request.data;
 
   // Validate required fields
   if (!businessName || !taxId || !bankAccount || !businessAddress) {
@@ -110,12 +110,12 @@ export const createSellerProfile = functions.https.onCall(async (data: CreateSel
 /**
  * Updates seller verification status
  */
-export const updateSellerVerification = functions.https.onCall(async (data: UpdateSellerVerificationData, context) => {
-  if (!context.auth) {
+export const updateSellerVerification = functions.https.onCall(async (request: functions.https.CallableRequest) => {
+  if (!request.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const { sellerId, isVerified, verificationNotes } = data;
+  const { sellerId, isVerified, verificationNotes } = request.data;
   
   // Only admins can verify sellers (implement admin check)
   // For now, we'll allow self-verification during development
@@ -138,12 +138,12 @@ export const updateSellerVerification = functions.https.onCall(async (data: Upda
 /**
  * Gets seller dashboard data
  */
-export const getSellerDashboard = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
+export const getSellerDashboard = functions.https.onCall(async (request) => {
+  if (!request.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const userId = context.auth.uid;
+  const userId = request.auth.uid;
 
   try {
     // Get seller profile
@@ -217,13 +217,13 @@ export const getSellerDashboard = functions.https.onCall(async (data, context) =
 /**
  * Uploads business documents for verification
  */
-export const uploadBusinessDocuments = functions.https.onCall(async (data: UploadBusinessDocumentsData, context) => {
-  if (!context.auth) {
+export const uploadBusinessDocuments = functions.https.onCall(async (request: functions.https.CallableRequest) => {
+  if (!request.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const userId = context.auth.uid;
-  const { documents } = data;
+  const userId = request.auth.uid;
+  const { documents } = request.data;
 
   try {
     const uploadPromises = documents.map(async (doc) => {
@@ -263,13 +263,13 @@ export const uploadBusinessDocuments = functions.https.onCall(async (data: Uploa
 /**
  * Updates seller profile
  */
-export const updateSellerProfile = functions.https.onCall(async (data: Partial<CreateSellerProfileData>, context) => {
-  if (!context.auth) {
+export const updateSellerProfile = functions.https.onCall(async (request: functions.https.CallableRequest) => {
+  if (!request.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const userId = context.auth.uid;
-  const updates = data;
+  const userId = request.auth.uid;
+  const updates = request.data;
 
   try {
     // Remove sensitive fields that shouldn't be updated directly
