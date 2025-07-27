@@ -33,7 +33,7 @@ module.exports = {
       favicon: "./assets/favicon.png"
     },
     extra: {
-      firebaseApiKey: "YOUR_API_KEY_HERE",
+      firebaseApiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
       firebaseAuthDomain: "",
       firebaseProjectId: "blytz-e9935",
       firebaseStorageBucket: "blytz-e9935.firebasestorage.app",
