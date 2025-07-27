@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "auctions": {
+      "$auctionId": {
+        // Anyone can read auction data
+        ".read": true,
+        "bids": {
+          // Only authenticated users can write to the bids list
+          ".write": "auth != null",
+          "$bidId": {
+            // Validate the structure of the new bid
+            ".validate": "newData.hasChildren(['userId', 'amount', 'timestamp']) && newData.child('userId').val() == auth.uid && newData.child('amount').isNumber() && newData.child('timestamp').isNumber()",
+            // Prevent users from updating existing bids
+            ".write": "!data.exists()"
+          }
+        }
+      }
+    }
+  }
+}

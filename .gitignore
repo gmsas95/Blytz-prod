@@ -1,0 +1,50 @@
+# AI-specific reference files, not part of the application build
+ai-docs/
+.gemini/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-error.log
+.pnp/
+.pnp.js
+
+# Expo
+.expo/
+web-build/
+dist/
+
+# Android
+/android/
+android/build/
+android/.gradle/
+!android/gradle-wrapper.jar
+!android/gradlew
+!android/gradlew.bat
+!android/app/src/main/res/raw/
+!android/app/src/main/res/raw/*
+!android/app/src/main/res/raw/node_modules
+!android/app/src/main/res/raw/node_modules/*
+
+# iOS
+/ios/
+ios/build/
+*.xccheckout
+*.xcworkspace
+GoogleService-Info.plist
+
+# Firebase Functions
+functions/node_modules/
+functions/lib/
+
+# Environment variables
+.env
+.env.production
+.env.development
+
+# IDE and OS files
+.DS_Store
+*.log
+.vscode/
+.idea/
+google-services.jsonnode_modules/
