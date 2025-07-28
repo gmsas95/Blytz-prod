@@ -5,9 +5,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Image,
+  
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -158,7 +156,7 @@ const SellerSignupScreen = () => {
         'Seller account created successfully! Please wait for verification.',
         [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       Alert.alert('Registration Error', error.message);
     } finally {
       setLoading(false);

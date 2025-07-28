@@ -3,7 +3,7 @@ import {
   View,
   ScrollView,
   Text,
-  StyleSheet,
+  
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -29,7 +29,7 @@ const SellerDashboardScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState<SellerDashboardData | null>(null);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       await refreshSellerProfile();
@@ -82,11 +82,11 @@ const SellerDashboardScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [refreshSellerProfile, sellerProfile, user]);
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [loadDashboardData]);
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+import admin from 'firebase-admin';
 
 // I will replace this with the actual service account key later
 const serviceAccount = {

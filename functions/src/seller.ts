@@ -19,30 +19,7 @@ interface BusinessAddress {
     country: string;
 }
 
-interface CreateSellerProfileData {
-  businessName: string;
-  businessType: string;
-  taxId: string;
-  bankAccount: BankAccount;
-  businessAddress: BusinessAddress;
-  phoneNumber: string;
-  email: string;
-  businessDescription?: string;
-}
 
-interface UpdateSellerVerificationData {
-  sellerId: string;
-  isVerified: boolean;
-  verificationNotes?: string;
-}
-
-interface UploadBusinessDocumentsData {
-  documents: {
-    type: string;
-    data: string; // base64 encoded
-    contentType: string;
-  }[];
-}
 
 /**
  * Creates a new seller profile when a user registers as a seller
@@ -138,7 +115,7 @@ export const updateSellerVerification = functions.https.onCall(async (request: f
 /**
  * Gets seller dashboard data
  */
-export const getSellerDashboard = functions.https.onCall(async (request) => {
+export const getSellerDashboard = functions.https.onCall(async (request: functions.https.CallableRequest) => {
   if (!request.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -260,6 +237,18 @@ export const uploadBusinessDocuments = functions.https.onCall(async (request: fu
   }
 });
 
+interface SellerProfileUpdateData {
+  businessName?: string;
+  businessType?: string;
+  taxId?: string;
+  bankAccount?: BankAccount;
+  businessAddress?: BusinessAddress;
+  phoneNumber?: string;
+  email?: string;
+  businessDescription?: string;
+  updatedAt?: admin.firestore.FieldValue;
+}
+
 /**
  * Updates seller profile
  */
@@ -269,18 +258,18 @@ export const updateSellerProfile = functions.https.onCall(async (request: functi
   }
 
   const userId = request.auth.uid;
-  const updates = request.data;
+  const updates: SellerProfileUpdateData = request.data;
 
   try {
     // Remove sensitive fields that shouldn't be updated directly
-    delete (updates as any).userId;
-    delete (updates as any).createdAt;
-    delete (updates as any).totalSales;
-    delete (updates as any).totalRevenue;
-    delete (updates as any).rating;
-    delete (updates as any).reviewCount;
+    delete updates.userId;
+    delete updates.createdAt;
+    delete updates.totalSales;
+    delete updates.totalRevenue;
+    delete updates.rating;
+    delete updates.reviewCount;
 
-    (updates as any).updatedAt = FieldValue.serverTimestamp();
+    updates.updatedAt = FieldValue.serverTimestamp();
 
     await firestore.collection('sellers').doc(userId).update(updates);
 

@@ -4,13 +4,12 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  StyleSheet,
+  
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+
 import { Ionicons } from '@expo/vector-icons';
 
 const SellerOrdersScreen = () => {
-  const navigation = useNavigation();
   const [selectedTab, setSelectedTab] = useState('all');
 
   const tabs = [

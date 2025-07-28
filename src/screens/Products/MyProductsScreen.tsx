@@ -1,11 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
-  ScrollView,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +17,7 @@ type MyProductsScreenNavigationProp = NativeStackNavigationProp<
 
 const MyProductsScreen = () => {
   const navigation = useNavigation<MyProductsScreenNavigationProp>();
-  const [loading, setLoading] = useState(false);
+  
 
   return (
     <View className="flex-1 bg-gray-50">

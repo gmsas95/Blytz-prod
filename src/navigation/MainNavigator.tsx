@@ -19,7 +19,7 @@ const MainNavigator: React.FC = () => {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName: any;
+          let iconName: string;
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';

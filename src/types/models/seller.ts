@@ -45,6 +45,12 @@ export interface SellerProfile {
   email: string;
   businessDescription?: string;
   businessLogo?: string;
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    website?: string;
+    twitter?: string;
+  };
   businessDocuments?: Array<{
     type: 'businessRegistration' | 'taxCertificate' | 'bankStatement';
     fileName: string;

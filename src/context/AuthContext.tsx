@@ -107,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [refreshSellerProfile]);
 
   const loginWithEmail = useCallback(async (email: string, password: string) => {
     setLoading(true);

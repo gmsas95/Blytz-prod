@@ -3,10 +3,25 @@ import {FirebaseFirestoreTypes} from '@react-native-firebase/firestore';
 export interface Notification {
   id: string;
   userId: string;
-  message: string;
-  type: 'stream' | 'bid' | 'order';
+  title: string;
+  body: string;
+  type: 'bid' | 'order' | 'stream' | 'seller' | 'system' | 'payment' | 'shipping';
   isRead: boolean;
   createdAt: FirebaseFirestoreTypes.Timestamp;
+  readAt?: FirebaseFirestoreTypes.Timestamp;
+  data?: {
+    streamId?: string;
+    orderId?: string;
+    bidId?: string;
+    sellerId?: string;
+    productId?: string;
+    amount?: number;
+    screen?: string;
+    params?: Record<string, unknown>;
+  };
+  priority: 'low' | 'medium' | 'high';
+  imageUrl?: string;
+  actionUrl?: string;
 }
 
 export const notificationConverter = {
