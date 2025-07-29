@@ -1,11 +1,7 @@
 # AI-specific reference files, not part of the application build
-ai-docs/
 airef/
-agents/
-plans/
 .gemini/
 .claude/
-plans/
 
 # Node.js
 node_modules/
