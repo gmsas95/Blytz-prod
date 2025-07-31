@@ -8,10 +8,14 @@ import {FieldValue} from 'firebase-admin/firestore';
 import {logger} from 'firebase-functions';
 import * as crypto from 'crypto';
 
+admin.initializeApp();
+
 // Import bidding functions
 export * from './bidding';
-
-admin.initializeApp();
+// Import seller onboarding functions
+export * from './sellerOnboarding';
+// Import webhook functions
+export * from './webhooks';
 
 // Firestore references
 const firestore = admin.firestore();

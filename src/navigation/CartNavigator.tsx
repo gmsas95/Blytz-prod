@@ -8,7 +8,7 @@ const Stack = createNativeStackNavigator();
 export const CartNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{headerShown: false}}>
-      <Stack.Screen name="Cart" component={CartScreen} />
+      <Stack.Screen name="CartScreen" component={CartScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
     </Stack.Navigator>
   );

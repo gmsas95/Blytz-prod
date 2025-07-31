@@ -264,93 +264,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const applyForSeller = useCallback(
-    async (sellerApplication: SellerApplication) => {
+    async (sellerApplication: {
+      businessName: string;
+      businessType: 'individual' | 'company';
+      email: string;
+      phoneNumber: string;
+      bankName: string;
+      accountNumber: string;
+    }) => {
       if (!user?.uid) throw new Error('User must be logged in');
       
       setLoading(true);
       try {
         // Validate required fields
-        const requiredFields = ['businessName', 'businessType', 'taxId', 'bankAccount', 'businessAddress', 'phoneNumber', 'businessDescription'];
+        const requiredFields = ['businessName', 'businessType', 'email', 'phoneNumber', 'bankName', 'accountNumber'];
         for (const field of requiredFields) {
-          if (!sellerApplication[field as keyof SellerApplication]) {
+          if (!sellerApplication[field as keyof typeof sellerApplication]) {
             throw new Error(`Missing required field: ${field}`);
           }
         }
 
-        // Validate business type (already typed, no runtime check needed)
-
-        // Validate tax ID format (basic validation)
-        if (!/^[\d\w-]+$/.test(sellerApplication.taxId)) {
-          throw new Error('Invalid tax ID format');
-        }
-
-        // Validate phone number format
-        if (!/^\+?[\d\s-()]+$/.test(sellerApplication.phoneNumber)) {
-          throw new Error('Invalid phone number format');
-        }
-
-        // Create seller profile for existing user
-        const sellerProfile: SellerProfile = {
-          userId: user.uid,
-          businessName: sellerApplication.businessName.trim(),
-          businessType: sellerApplication.businessType,
-          taxId: sellerApplication.taxId.trim(),
-          bankAccount: {
-            accountNumber: sellerApplication.bankAccount.accountNumber,
-            bankName: sellerApplication.bankAccount.bankName,
-            accountHolder: sellerApplication.bankAccount.accountHolder,
-          },
-          businessAddress: {
-            addressLine1: sellerApplication.businessAddress.addressLine1,
-            addressLine2: sellerApplication.businessAddress.addressLine2,
-            city: sellerApplication.businessAddress.city,
-            state: sellerApplication.businessAddress.state,
-            postalCode: sellerApplication.businessAddress.postalCode,
-            country: sellerApplication.businessAddress.country,
-          },
-          phoneNumber: sellerApplication.phoneNumber.trim(),
-          email: user.email || '',
-          businessDescription: sellerApplication.businessDescription.trim(),
-          isVerified: false,
-          verificationStatus: 'pending',
-          totalSales: 0,
-          totalRevenue: 0,
-          rating: 0,
-          reviewCount: 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        // Use batched write for atomic operation
-        const batch = writeBatch(firestore);
-        const sellerDocRef = doc(firestore, 'sellers', user.uid);
-        const userDocRef = doc(firestore, 'users', user.uid);
+        // Call Cloud Function to submit application
+        const submitSellerApplication = firebase.functions().httpsCallable('submitSellerApplication');
+        const result = await submitSellerApplication(sellerApplication);
         
-        batch.set(sellerDocRef, sellerProfile);
-        batch.update(userDocRef, {
-          hasSellerApplication: true,
-          sellerApplicationStatus: 'pending',
-          sellerApplicationSubmittedAt: new Date(),
-        });
-        
-        await batch.commit();
-
-        // Force refresh token to get updated claims
-        if (authRN().currentUser) {
-          const currentUser = authRN().currentUser;
-          if (currentUser) {
-            await currentUser.getIdToken(true);
-          }
+        if (result.data.success) {
+          // Update local user state
+          await refreshUser();
         }
         
-        // Refresh seller status
-        await refreshSellerProfile(user.uid);
-      } catch (error) {
+        return result.data;
+      } catch (error: any) {
+        console.error('Error submitting seller application:', error);
+        throw new Error(error.message || 'Failed to submit application');
+      } finally {
         setLoading(false);
-        throw error;
       }
     },
-    [user, refreshSellerProfile]
+    [user, refreshUser]
   );
 
   const logout = useCallback(async () => {
