@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,15 @@ import {
   SafeAreaView,
   StatusBar,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {theme} from '../../config/theme';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {LiveStreamItem} from '../../components/Home';
+import {streamsService} from '../../services/firebase/streams';
+import {StreamDisplay, FeaturedStream} from '../../types/models/streamDisplay';
 
 type AuthStackParamList = {
   LiveStreamViewer: {streamId: string};
@@ -23,125 +26,6 @@ type AuthStackParamList = {
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
-// Mock data for featured streams
-const featuredStreams = [
-  {
-    id: '1',
-    title: 'Vintage Designer Collection',
-    seller: 'LuxuryFinds',
-    viewers: 2847,
-    image: 'https://via.placeholder.com/300x180?text=Featured+Stream+1',
-    category: 'Fashion',
-    isLive: true,
-  },
-  {
-    id: '2',
-    title: 'Rare Sneaker Drop',
-    seller: 'SneakerKing',
-    viewers: 5639,
-    image: 'https://via.placeholder.com/300x180?text=Featured+Stream+2',
-    category: 'Sneakers',
-    isLive: true,
-  },
-  {
-    id: '3',
-    title: 'Comic Book Auction',
-    seller: 'ComicCollector',
-    viewers: 1234,
-    image: 'https://via.placeholder.com/300x180?text=Featured+Stream+3',
-    category: 'Collectibles',
-    isLive: true,
-  },
-];
-
-// Mock data for live streams
-interface LiveStreamItem {
-  id: string;
-  seller: string;
-  title: string;
-  viewers: number;
-  image: string;
-  avatar: string;
-  category: string;
-  isLive: boolean;
-  currentBid?: number;
-  productCount: number;
-}
-
-const liveStreams: LiveStreamItem[] = [
-  {
-    id: '1',
-    seller: 'VintageVibes',
-    title: 'Authentic 70s Collection',
-    viewers: 1847,
-    image: 'https://via.placeholder.com/180x240?text=Live+Stream+1',
-    avatar: 'https://via.placeholder.com/40?text=V',
-    category: 'Vintage',
-    isLive: true,
-    currentBid: 45.0,
-    productCount: 8,
-  },
-  {
-    id: '2',
-    seller: 'TechDeals',
-    title: 'Gaming Gear Auction',
-    viewers: 3264,
-    image: 'https://via.placeholder.com/180x240?text=Live+Stream+2',
-    avatar: 'https://via.placeholder.com/40?text=T',
-    category: 'Electronics',
-    isLive: true,
-    currentBid: 127.5,
-    productCount: 12,
-  },
-  {
-    id: '3',
-    seller: 'ArtisanCrafts',
-    title: 'Handmade Jewelry Show',
-    viewers: 892,
-    image: 'https://via.placeholder.com/180x240?text=Live+Stream+3',
-    avatar: 'https://via.placeholder.com/40?text=A',
-    category: 'Jewelry',
-    isLive: true,
-    currentBid: 28.0,
-    productCount: 15,
-  },
-  {
-    id: '4',
-    seller: 'BookwormFinds',
-    title: 'Rare Book Collection',
-    viewers: 567,
-    image: 'https://via.placeholder.com/180x240?text=Live+Stream+4',
-    avatar: 'https://via.placeholder.com/40?text=B',
-    category: 'Books',
-    isLive: true,
-    currentBid: 89.99,
-    productCount: 6,
-  },
-  {
-    id: '5',
-    seller: 'SportsMemorabilia',
-    title: 'Signed Sports Cards',
-    viewers: 2156,
-    image: 'https://via.placeholder.com/180x240?text=Live+Stream+5',
-    avatar: 'https://via.placeholder.com/40?text=S',
-    category: 'Sports',
-    isLive: true,
-    currentBid: 199.0,
-    productCount: 9,
-  },
-  {
-    id: '6',
-    seller: 'HomeDecorPro',
-    title: 'Vintage Home Decor',
-    viewers: 1423,
-    image: 'https://via.placeholder.com/180x240?text=Live+Stream+6',
-    avatar: 'https://via.placeholder.com/40?text=H',
-    category: 'Home',
-    isLive: true,
-    currentBid: 67.5,
-    productCount: 11,
-  },
-];
 
 const categories = [
   {id: 'all', name: 'All', icon: 'apps-outline'},
@@ -156,40 +40,97 @@ export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [filteredStreams, setFilteredStreams] = useState(liveStreams);
+  const [loading, setLoading] = useState(true);
+  const [liveStreams, setLiveStreams] = useState<StreamDisplay[]>([]);
+  const [featuredStreams, setFeaturedStreams] = useState<FeaturedStream[]>([]);
+  const [filteredStreams, setFilteredStreams] = useState<StreamDisplay[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load initial data
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [streams, featured] = await Promise.all([
+        streamsService.getLiveStreams(),
+        streamsService.getFeaturedStreams()
+      ]);
+
+      setLiveStreams(streams);
+      setFeaturedStreams(featured);
+      setFilteredStreams(streams);
+    } catch (err) {
+      setError('Failed to load streams. Please try again.');
+      console.error('Error loading streams:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    const unsubscribeLive = streamsService.subscribeToLiveStreams((streams) => {
+      setLiveStreams(streams);
+      if (selectedCategory === 'all') {
+        setFilteredStreams(streams);
+      } else {
+        setFilteredStreams(
+          streams.filter(stream =>
+            stream.category.toLowerCase() === selectedCategory.toLowerCase()
+          )
+        );
+      }
+    });
+
+    const unsubscribeFeatured = streamsService.subscribeToFeaturedStreams((featured) => {
+      setFeaturedStreams(featured);
+    });
+
+    return () => {
+      unsubscribeLive();
+      unsubscribeFeatured();
+    };
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     if (selectedCategory === 'all') {
       setFilteredStreams(liveStreams);
     } else {
       setFilteredStreams(
-        liveStreams.filter(
-          stream =>
-            stream.category.toLowerCase() === selectedCategory.toLowerCase(),
-        ),
+        liveStreams.filter(stream =>
+          stream.category.toLowerCase() === selectedCategory.toLowerCase()
+        )
       );
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, liveStreams]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Simulate refresh
-    setTimeout(() => {
+    try {
+      await loadData();
+    } catch (err) {
+      setError('Failed to refresh streams.');
+    } finally {
       setRefreshing(false);
-    }, 1000);
-  };
+    }
+  }, [loadData]);
 
   const renderFeaturedStream = ({
     item,
   }: {
-    item: (typeof featuredStreams)[0];
+    item: FeaturedStream;
   }) => (
     <TouchableOpacity
       style={styles.featuredStreamCard}
       onPress={() =>
-        navigation.navigate('LiveStreamViewer', {streamId: item.id})
+        navigation.navigate('LiveStreamViewer', {streamId: item.streamId})
       }>
-      <Image source={{uri: item.image}} style={styles.featuredStreamImage} />
+      <Image source={{uri: item.thumbnailUrl}} style={styles.featuredStreamImage} />
       <View style={styles.featuredStreamOverlay}>
         <View style={styles.liveIndicator}>
           <View style={styles.liveDot} />
@@ -199,14 +140,23 @@ export default function HomeScreen() {
       </View>
       <View style={styles.featuredStreamInfo}>
         <Text style={styles.featuredStreamTitle}>{item.title}</Text>
-        <Text style={styles.featuredStreamSeller}>{item.seller}</Text>
+        <Text style={styles.featuredStreamSeller}>{item.sellerName}</Text>
       </View>
     </TouchableOpacity>
   );
 
-  const renderLiveStream = ({item}: {item: LiveStreamItem}) => (
+  const renderLiveStream = ({item}: {item: StreamDisplay}) => (
     <LiveStreamItem
-      {...item}
+      id={item.id}
+      title={item.title}
+      seller={item.sellerName}
+      avatar={item.sellerAvatar}
+      viewers={item.viewers}
+      image={item.thumbnailUrl}
+      category={item.category}
+      isActive={true}
+      currentBid={item.currentBid}
+      productCount={item.productCount}
       onPress={() => navigation.navigate('LiveStreamViewer', {streamId: item.id})}
     />
   );
@@ -236,6 +186,36 @@ export default function HomeScreen() {
       </Text>
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centerContainer]}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={theme.colors.background}
+        />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centerContainer]}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={theme.colors.background}
+        />
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={theme.colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -274,17 +254,19 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
         {/* Featured Streams */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Featured Live Auctions</Text>
-          <FlatList
-            data={featuredStreams}
-            renderItem={renderFeaturedStream}
-            keyExtractor={item => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.featuredList}
-          />
-        </View>
+        {featuredStreams.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Featured Live Auctions</Text>
+            <FlatList
+              data={featuredStreams}
+              renderItem={renderFeaturedStream}
+              keyExtractor={item => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.featuredList}
+            />
+          </View>
+        )}
 
         {/* Categories */}
         <View style={styles.section}>
@@ -306,14 +288,22 @@ export default function HomeScreen() {
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
-          <FlatList
-            data={filteredStreams}
-            renderItem={renderLiveStream}
-            keyExtractor={item => item.id}
-            numColumns={2}
-            scrollEnabled={false}
-            contentContainerStyle={styles.liveStreamGrid}
-          />
+          
+          {filteredStreams.length > 0 ? (
+            <FlatList
+              data={filteredStreams}
+              renderItem={renderLiveStream}
+              keyExtractor={item => item.id}
+              numColumns={2}
+              scrollEnabled={false}
+              contentContainerStyle={styles.liveStreamGrid}
+            />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="videocam-off-outline" size={48} color={theme.colors.secondary} />
+              <Text style={styles.emptyText}>No live streams in this category</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -477,5 +467,43 @@ const styles = StyleSheet.create({
   },
   liveStreamGrid: {
     paddingHorizontal: 16,
+  },
+  centerContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    padding: 32,
+  },
+  errorText: {
+    fontSize: theme.typography.body1.fontSize,
+    color: theme.colors.error,
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 24,
+    fontFamily: 'Inter',
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: theme.colors.onPrimary,
+    fontSize: theme.typography.button.fontSize,
+    fontWeight: theme.typography.button.fontWeight as '500',
+    fontFamily: 'Inter',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  emptyText: {
+    fontSize: theme.typography.body1.fontSize,
+    color: theme.colors.secondary,
+    marginTop: 8,
+    fontFamily: 'Inter',
   },
 });
