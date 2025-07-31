@@ -61,13 +61,17 @@ export const notifyAdminNewApplication = onDocumentCreated(
 /**
  * Send webhook notification when application status changes
  */
-export const notifyAdminStatusChange = functions.firestore
-  .document('sellerApplications/{applicationId}')
-  .onUpdate(async (change, context) => {
+export const notifyAdminStatusChange = onDocumentUpdated(
+  'sellerApplications/{applicationId}',
+  async (event) => {
     try {
-      const before = change.before.data();
-      const after = change.after.data();
-      const applicationId = context.params.applicationId;
+      const before = event.data?.before.data();
+      const after = event.data?.after.data();
+      const applicationId = event.params?.applicationId;
+
+      if (!before || !after || !applicationId) {
+        return null;
+      }
 
       // Only notify on status change
       if (before.status === after.status) {
@@ -81,7 +85,7 @@ export const notifyAdminStatusChange = functions.firestore
         businessName: after.businessName,
         oldStatus: before.status,
         newStatus: after.status,
-        reviewedAt: after.reviewedAt?.toDate().toISOString(),
+        reviewedAt: after.reviewedAt?.toDate?.()?.toISOString(),
         notes: after.notes || '',
       };
 

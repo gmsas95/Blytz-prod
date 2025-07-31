@@ -9,10 +9,11 @@ import {
   FirebaseAuthTypes,
 } from '@react-native-firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SellerRegistrationData, SellerProfile } from '../types/models/seller';
 import { User, ShippingAddress } from '../types/models';
-import { firestore } from '../config/firebase.config';
+import { firestore, app } from '../config/firebase.config';
 import { firebaseAuth, authRN } from '../services/firebase/auth';
 
 interface SellerApplication {
@@ -48,7 +49,14 @@ interface AuthContextType {
     displayName?: string,
   ) => Promise<void>;
   registerAsSeller: (sellerData: SellerRegistrationData) => Promise<void>;
-  applyForSeller: (sellerApplication: SellerApplication) => Promise<void>;
+  applyForSeller: (sellerApplication: {
+    businessName: string;
+    businessType: 'individual' | 'company';
+    email: string;
+    phoneNumber: string;
+    bankName: string;
+    accountNumber: string;
+  }) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   updateProfile: (profile: { displayName?: string | null; photoURL?: string | null; }) => Promise<void>;
   reauthenticate: (credential: FirebaseAuthTypes.AuthCredential) => Promise<void>;
@@ -285,15 +293,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         // Call Cloud Function to submit application
-        const submitSellerApplication = firebase.functions().httpsCallable('submitSellerApplication');
+        const functions = getFunctions(app);
+        const submitSellerApplication = httpsCallable(functions, 'submitSellerApplication');
         const result = await submitSellerApplication(sellerApplication);
         
-        if (result.data.success) {
+        const data = result.data as { success: boolean; message: string };
+        
+        if (data.success) {
           // Update local user state
           await refreshUser();
         }
         
-        return result.data;
+        return data;
       } catch (error: any) {
         console.error('Error submitting seller application:', error);
         throw new Error(error.message || 'Failed to submit application');
@@ -301,7 +312,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setLoading(false);
       }
     },
-    [user, refreshUser]
+    [user?.uid]
   );
 
   const logout = useCallback(async () => {

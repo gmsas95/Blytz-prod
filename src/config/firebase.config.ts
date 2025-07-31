@@ -13,8 +13,8 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase only if not already initialized
-import { getApp } from 'firebase/app';
-let app;
+import { getApp, FirebaseApp } from 'firebase/app';
+let app: FirebaseApp;
 try {
   app = getApp();
 } catch (e) {
@@ -24,4 +24,4 @@ try {
 const firestore = getFirestore(app);
 const storage = getStorage(app);
 
-export { firestore, storage };
+export { firestore, storage, app };

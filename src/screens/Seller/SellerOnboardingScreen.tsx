@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.border,
+    backgroundColor: theme.colors.secondary,
     marginHorizontal: 4,
   },
   activeDot: {
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.secondary,
     borderRadius: 12,
     paddingHorizontal: 16,
     minHeight: 48,
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.secondary,
   },
   typeButton: {
     flex: 1,
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: theme.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: theme.colors.secondary,
   },
   buttonsContainer: {
     flexDirection: 'row',
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.secondary,
     marginRight: 8,
   },
   primaryButtonText: {
