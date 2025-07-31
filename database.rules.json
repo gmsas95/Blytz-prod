@@ -2,17 +2,94 @@
   "rules": {
     "auctions": {
       "$auctionId": {
-        // Anyone can read auction data
         ".read": true,
+        ".validate": "newData.hasChildren(['productId', 'sellerId', 'startTime', 'endTime', 'startingPrice', 'currentPrice', 'status'])",
+        "productId": {
+          ".validate": "newData.isString()"
+        },
+        "sellerId": {
+          ".validate": "newData.isString()"
+        },
+        "startTime": {
+          ".validate": "newData.isNumber()"
+        },
+        "endTime": {
+          ".validate": "newData.isNumber()"
+        },
+        "startingPrice": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "currentPrice": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() == 'active' || newData.val() == 'paused' || newData.val() == 'ended' || newData.val() == 'cancelled')"
+        },
         "bids": {
-          // Only authenticated users can write to the bids list
           ".write": "auth != null",
           "$bidId": {
-            // Validate the structure of the new bid
-            ".validate": "newData.hasChildren(['userId', 'amount', 'timestamp']) && newData.child('userId').val() == auth.uid && newData.child('amount').isNumber() && newData.child('timestamp').isNumber()",
-            // Prevent users from updating existing bids
-            ".write": "!data.exists()"
+            ".validate": "newData.hasChildren(['userId', 'amount', 'timestamp', 'status']) && 
+              newData.child('userId').val() == auth.uid && 
+              newData.child('amount').isNumber() && 
+              newData.child('amount').val() > 0 &&
+              newData.child('timestamp').isNumber() &&
+              newData.child('status').val() == 'pending'",
+            ".write": "!data.exists() && 
+              root.child('userProfiles').child(auth.uid).child('isActive').val() == true &&
+              root.child('userProfiles').child(auth.uid).child('isBanned').val() != true"
           }
+        },
+        "bidHistory": {
+          ".read": true,
+          "$bidId": {
+            ".validate": "newData.hasChildren(['userId', 'amount', 'timestamp', 'status'])"
+          }
+        }
+      }
+    },
+    "userProfiles": {
+      "$userId": {
+        ".read": true,
+        ".write": "$userId == auth.uid",
+        ".validate": "newData.hasChildren(['isActive', 'isBanned', 'totalBids', 'successfulBids', 'failedBids'])"
+      }
+    },
+    "rateLimits": {
+      "$userId": {
+        ".read": "$userId == auth.uid",
+        ".write": false,
+        "lastBidTime": {
+          ".validate": "newData.isNumber()"
+        },
+        "bidCount": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "cooldownUntil": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    "fraudDetection": {
+      "$userId": {
+        ".read": false,
+        ".write": false,
+        "suspiciousActivity": {
+          ".validate": "newData.isBoolean()"
+        },
+        "lastCheck": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    "analytics": {
+      "dailyStats": {
+        ".read": true,
+        ".write": false
+      },
+      "auctionStats": {
+        "$auctionId": {
+          ".read": true,
+          ".write": false
         }
       }
     }

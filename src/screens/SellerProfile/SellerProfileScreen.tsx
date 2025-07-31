@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { SellerProfile } from '../../types/models/seller';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,11 +20,11 @@ import { uploadToStorage } from '../../services/firebase/storage';
 
 type SellerProfileScreenNavigationProp = NativeStackNavigationProp<
   SellerStackParamList,
-  'SellerProfile'
+  'EditSellerProfile'
 >;
 
 const SellerProfileScreen = () => {
-  const navigation = useNavigation<SellerProfileScreenNavigationProp>();
+  const navigation = useNavigation<any>();
   const { user, sellerProfile, refreshSellerProfile } = useAuth();
   
   const [loading] = useState(false);
@@ -78,11 +77,11 @@ const SellerProfileScreen = () => {
   const handleAddressChange = (field: keyof SellerProfile['businessAddress'], value: string) => {
     setFormData(prev => ({
       ...prev,
-      businessAddress: { ...(prev.businessAddress || {}), [field]: value },
+      businessAddress: { ...(prev.businessAddress || {}), [field]: value } as SellerProfile['businessAddress'],
     }));
   };
 
-  const handleSocialMediaChange = (field: keyof SellerProfile['socialMedia'], value: string) => {
+  const handleSocialMediaChange = (field: any, value: string) => {
     setFormData(prev => ({
       ...prev,
       socialMedia: { ...(prev.socialMedia || {}), [field]: value },
@@ -91,7 +90,7 @@ const SellerProfileScreen = () => {
 
   const selectLogo = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      /*const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'Please grant permission to access your photos');
         return;
@@ -112,7 +111,7 @@ const SellerProfileScreen = () => {
         // Upload to Firebase Storage
         const uploadedUrl = await uploadToStorage(uri, `seller-logos/${user?.uid}`, 'business-logo');
         setLogoUri(uploadedUrl);
-      }
+      }*/
     } catch (error) {
       Alert.alert('Error', 'Failed to upload logo. Please try again.');
       console.error('Logo upload error:', error);
@@ -196,7 +195,7 @@ const SellerProfileScreen = () => {
         {/* Business Logo */}
         <View className="items-center mb-6">
           <TouchableOpacity 
-            onPress={selectLogo} 
+            // onPress={selectLogo} 
             disabled={!editMode}
             className="relative"
           >

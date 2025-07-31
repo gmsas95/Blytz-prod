@@ -16,7 +16,7 @@ import {ShippingAddress} from '../../types/auth';
 import {User} from '../../types/models/user';
 
 export default function ShippingAddressScreen() {
-  const {user} = useAuth();
+  const {user, updateShippingAddress, addShippingAddress, deleteShippingAddress, refreshUser} = useAuth();
   const navigation = useNavigation();
   const [addresses, setAddresses] = useState<ShippingAddress[]>([]);
   const [selectedAddress, setSelectedAddress] =
@@ -40,7 +40,7 @@ export default function ShippingAddressScreen() {
       setError(null);
       try {
         // Mock data for now, replace with actual fetch from user.shippingAddresses
-        const userAddresses = (user as User).shippingAddresses || [];
+        const userAddresses = user.shippingAddresses || [];
         setAddresses(userAddresses);
         if (userAddresses.length > 0) {
           handleSelectAddress(userAddresses[0]);
@@ -96,16 +96,16 @@ export default function ShippingAddressScreen() {
     try {
       if (selectedAddress?.id) {
         // Assuming user.updateShippingAddress is implemented on the User object
-        await (user as User).updateShippingAddress!(addressData);
+        await updateShippingAddress(addressData);
         Alert.alert('Success', 'Address updated successfully!');
       } else {
         // Assuming user.addShippingAddress is implemented on the User object
-        await (user as User).addShippingAddress!(addressData);
+        await addShippingAddress(addressData);
         Alert.alert('Success', 'Address added successfully!');
       }
       // Refresh addresses after save
-      const updatedUser = await (user as User).getUpdatedUser!(); // Assuming useAuth provides a way to get updated user
-      setAddresses(updatedUser.shippingAddresses || []);
+      await refreshUser();
+      setAddresses(user.shippingAddresses || []);
       handleAddNewAddress();
     } catch (err: unknown) {
       console.error('Error saving address:', err);
@@ -154,10 +154,10 @@ export default function ShippingAddressScreen() {
             setIsLoading(true);
             setError(null);
             try {
-              await (user as User).deleteShippingAddress!(selectedAddress.id!); // Assuming deleteShippingAddress takes ID
+              await deleteShippingAddress(selectedAddress.id!); // Assuming deleteShippingAddress takes ID
               Alert.alert('Success', 'Address deleted successfully!');
-              const updatedUser = await (user as User).getUpdatedUser!();
-              setAddresses(updatedUser.shippingAddresses || []);
+              await refreshUser();
+              setAddresses(user.shippingAddresses || []);
               handleAddNewAddress();
             } catch (err: unknown) {
               console.error('Error deleting address:', err);

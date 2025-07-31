@@ -12,19 +12,11 @@ export interface PaymentMethod {
 export interface User {
   uid: string;
   email: string;
-  displayName?: string;
-  photoURL?: string;
-  phoneNumber?: string;
+  displayName: string | null;
+  photoURL: string | null;
+  phoneNumber: string | null;
   shippingAddresses?: ShippingAddress[];
   paymentMethods?: PaymentMethod[];
-  refreshToken?: string; // Added for Firebase User compatibility
-  tenantId?: string; // Added for Firebase User compatibility
-
-  // Placeholder methods for now
-  addShippingAddress?: (address: ShippingAddress) => Promise<void>;
-  updateShippingAddress?: (address: ShippingAddress) => Promise<void>;
-  deleteShippingAddress?: (addressId: string) => Promise<void>;
-  getUpdatedUser?: () => Promise<User>;
 }
 
 export const userConverter = {

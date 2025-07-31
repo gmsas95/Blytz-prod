@@ -6,6 +6,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {ThemeProvider} from './src/context/ThemeProvider';
 import {AuthProvider} from './src/context/AuthContext';
 import {AuctionProvider} from './src/context/AuctionContext';
+import {CartProvider} from './src/context/CartContext';
 import {RootNavigator} from './src/navigation/RootNavigator';
 import React, {useEffect} from 'react';
 import {LogBox, AppRegistry, Platform, StyleSheet} from 'react-native';
@@ -40,12 +41,14 @@ const BlytzApp = () => {
         <ThemeProvider>
           <AuthProvider>
             <AuctionProvider>
-              <NavigationContainer>
-                <>
-                  <RootNavigator />
-                  <StatusBar style="auto" />
-                </>
-              </NavigationContainer>
+              <CartProvider>
+                <NavigationContainer>
+                  <>
+                    <RootNavigator />
+                    <StatusBar style="auto" />
+                  </>
+                </NavigationContainer>
+              </CartProvider>
             </AuctionProvider>
           </AuthProvider>
         </ThemeProvider>

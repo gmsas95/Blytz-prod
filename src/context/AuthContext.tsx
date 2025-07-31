@@ -5,11 +5,36 @@ import React, {
   useContext,
   useCallback,
 } from 'react';
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc } from '@react-native-firebase/firestore';
+import {
+  FirebaseAuthTypes,
+} from '@react-native-firebase/auth';
+import { doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SellerRegistrationData, SellerProfile } from '../types/models/seller';
-import { User } from '../types/models';
+import { User, ShippingAddress } from '../types/models';
+import { firestore } from '../config/firebase.config';
+import { firebaseAuth, authRN } from '../services/firebase/auth';
+
+interface SellerApplication {
+  businessName: string;
+  businessType: 'individual' | 'company' | 'partnership';
+  taxId: string;
+  bankAccount: {
+    accountNumber: string;
+    bankName: string;
+    accountHolder: string;
+  };
+  businessAddress: {
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  };
+  phoneNumber: string;
+  businessDescription: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -23,16 +48,20 @@ interface AuthContextType {
     displayName?: string,
   ) => Promise<void>;
   registerAsSeller: (sellerData: SellerRegistrationData) => Promise<void>;
+  applyForSeller: (sellerApplication: SellerApplication) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profile: { displayName?: string | null; photoURL?: string | null; }) => Promise<void>;
   reauthenticate: (credential: FirebaseAuthTypes.AuthCredential) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   refreshSellerProfile: () => Promise<void>;
+  addShippingAddress: (address: ShippingAddress) => Promise<void>;
+  updateShippingAddress: (address: ShippingAddress) => Promise<void>;
+  deleteShippingAddress: (addressId: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const db = getFirestore();
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -41,6 +70,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [isSeller, setIsSeller] = useState(false);
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
+
+  const refreshSellerProfile = useCallback(async (userId?: string) => {
+    if (!userId) return;
+    
+    try {
+      // Check if user is a seller
+      const token = await authRN().currentUser?.getIdTokenResult();
+      setIsSeller(token?.claims?.seller === true);
+
+      if (token?.claims?.seller === true) {
+        // Fetch seller profile
+        const sellerDocRef = doc(firestore, 'sellers', userId);
+        const sellerDoc = await getDoc(sellerDocRef);
+        if (sellerDoc.exists()) {
+          setSellerProfile(sellerDoc.data() as SellerProfile);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing seller profile:', error);
+    }
+  }, []);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -58,11 +108,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     checkUser();
 
-    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser: FirebaseAuthTypes.User | null) => {
+    const unsubscribe = firebaseAuth.onAuthStateChanged(async (firebaseUser: FirebaseAuthTypes.User | null) => {
       if (firebaseUser) {
         try {
           // Get user profile
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDocRef = doc(firestore, 'users', firebaseUser.uid);
           const userDoc = await getDoc(userDocRef);
           
           let userData: User;
@@ -73,9 +123,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             userData = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || '',
-              photoURL: firebaseUser.photoURL || '',
-              phoneNumber: firebaseUser.phoneNumber || '',
+              displayName: firebaseUser.displayName || null,
+              photoURL: firebaseUser.photoURL || null,
+              phoneNumber: firebaseUser.phoneNumber || null,
             };
             await setDoc(userDocRef, userData);
           }
@@ -84,15 +134,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           await AsyncStorage.setItem('user', JSON.stringify(userData));
 
           // Check if user is a seller
-          await refreshSellerProfile();
+          await refreshSellerProfile(userData.uid);
         } catch (error) {
           console.error('Error fetching user data from Firestore:', error);
           const fallbackUser: User = {
             uid: firebaseUser.uid,
             email: firebaseUser.email || '',
-            displayName: firebaseUser.displayName || '',
-            photoURL: firebaseUser.photoURL || '',
-            phoneNumber: firebaseUser.phoneNumber || '',
+            displayName: firebaseUser.displayName || null,
+            photoURL: firebaseUser.photoURL || null,
+            phoneNumber: firebaseUser.phoneNumber || null,
           };
           setUser(fallbackUser);
           await AsyncStorage.setItem('user', JSON.stringify(fallbackUser));
@@ -107,12 +157,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     return () => unsubscribe();
-  }, [refreshSellerProfile]);
+  }, []);
 
   const loginWithEmail = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
-      await auth().signInWithEmailAndPassword(email, password);
+      console.log('Attempting login with email:', email);
+      await firebaseAuth.signInWithEmailAndPassword(email, password);
+      console.log('Login successful');
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -122,25 +177,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     async (email: string, password: string, displayName?: string) => {
       setLoading(true);
       try {
-        const userCredential = await auth().createUserWithEmailAndPassword(
-          email,
-          password,
-        );
+        const userCredential: FirebaseAuthTypes.UserCredential = await firebaseAuth.createUserWithEmailAndPassword(
+            email,
+            password,
+          );
 
         if (userCredential.user) {
           if (displayName) {
-            await userCredential.user.updateProfile({ displayName });
+            await firebaseAuth.updateProfile(userCredential.user, { displayName });
           }
 
           const newUser: User = {
             uid: userCredential.user.uid,
             email: userCredential.user.email || '',
-            displayName: displayName || '',
-            photoURL: userCredential.user.photoURL || '',
-            phoneNumber: userCredential.user.phoneNumber || '',
+            displayName: displayName || null,
+            photoURL: userCredential.user.photoURL || null,
+            phoneNumber: userCredential.user.phoneNumber || null,
           };
 
-          const userDocRef = doc(db, 'users', userCredential.user.uid);
+          const userDocRef = doc(firestore, 'users', userCredential.user.uid);
           await setDoc(userDocRef, newUser);
         }
       } catch (error) {
@@ -155,7 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     async (sellerData: SellerRegistrationData) => {
       setLoading(true);
       try {
-        const userCredential = await auth().createUserWithEmailAndPassword(
+        const userCredential: FirebaseAuthTypes.UserCredential = await firebaseAuth.createUserWithEmailAndPassword(
           sellerData.email,
           sellerData.password,
         );
@@ -165,12 +220,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           const newUser: User = {
             uid: userCredential.user.uid,
             email: userCredential.user.email || '',
-            displayName: sellerData.businessName,
-            photoURL: userCredential.user.photoURL || '',
-            phoneNumber: sellerData.phoneNumber || '',
+            displayName: sellerData.businessName || null,
+            photoURL: userCredential.user.photoURL || null,
+            phoneNumber: sellerData.phoneNumber || null,
           };
 
-          const userDocRef = doc(db, 'users', userCredential.user.uid);
+          const userDocRef = doc(firestore, 'users', userCredential.user.uid);
           await setDoc(userDocRef, newUser);
 
           // Create seller profile
@@ -194,7 +249,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             updatedAt: new Date(),
           };
 
-          const sellerDocRef = doc(db, 'sellers', userCredential.user.uid);
+          const sellerDocRef = doc(firestore, 'sellers', userCredential.user.uid);
           await setDoc(sellerDocRef, sellerProfile);
 
           // Set custom claims for seller role (this will be handled by Cloud Functions)
@@ -208,10 +263,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
+  const applyForSeller = useCallback(
+    async (sellerApplication: SellerApplication) => {
+      if (!user?.uid) throw new Error('User must be logged in');
+      
+      setLoading(true);
+      try {
+        // Validate required fields
+        const requiredFields = ['businessName', 'businessType', 'taxId', 'bankAccount', 'businessAddress', 'phoneNumber', 'businessDescription'];
+        for (const field of requiredFields) {
+          if (!sellerApplication[field as keyof SellerApplication]) {
+            throw new Error(`Missing required field: ${field}`);
+          }
+        }
+
+        // Validate business type (already typed, no runtime check needed)
+
+        // Validate tax ID format (basic validation)
+        if (!/^[\d\w-]+$/.test(sellerApplication.taxId)) {
+          throw new Error('Invalid tax ID format');
+        }
+
+        // Validate phone number format
+        if (!/^\+?[\d\s-()]+$/.test(sellerApplication.phoneNumber)) {
+          throw new Error('Invalid phone number format');
+        }
+
+        // Create seller profile for existing user
+        const sellerProfile: SellerProfile = {
+          userId: user.uid,
+          businessName: sellerApplication.businessName.trim(),
+          businessType: sellerApplication.businessType,
+          taxId: sellerApplication.taxId.trim(),
+          bankAccount: {
+            accountNumber: sellerApplication.bankAccount.accountNumber,
+            bankName: sellerApplication.bankAccount.bankName,
+            accountHolder: sellerApplication.bankAccount.accountHolder,
+          },
+          businessAddress: {
+            addressLine1: sellerApplication.businessAddress.addressLine1,
+            addressLine2: sellerApplication.businessAddress.addressLine2,
+            city: sellerApplication.businessAddress.city,
+            state: sellerApplication.businessAddress.state,
+            postalCode: sellerApplication.businessAddress.postalCode,
+            country: sellerApplication.businessAddress.country,
+          },
+          phoneNumber: sellerApplication.phoneNumber.trim(),
+          email: user.email || '',
+          businessDescription: sellerApplication.businessDescription.trim(),
+          isVerified: false,
+          verificationStatus: 'pending',
+          totalSales: 0,
+          totalRevenue: 0,
+          rating: 0,
+          reviewCount: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        // Use batched write for atomic operation
+        const batch = writeBatch(firestore);
+        const sellerDocRef = doc(firestore, 'sellers', user.uid);
+        const userDocRef = doc(firestore, 'users', user.uid);
+        
+        batch.set(sellerDocRef, sellerProfile);
+        batch.update(userDocRef, {
+          hasSellerApplication: true,
+          sellerApplicationStatus: 'pending',
+          sellerApplicationSubmittedAt: new Date(),
+        });
+        
+        await batch.commit();
+
+        // Force refresh token to get updated claims
+        if (authRN().currentUser) {
+          const currentUser = authRN().currentUser;
+          if (currentUser) {
+            await currentUser.getIdToken(true);
+          }
+        }
+        
+        // Refresh seller status
+        await refreshSellerProfile(user.uid);
+      } catch (error) {
+        setLoading(false);
+        throw error;
+      }
+    },
+    [user, refreshSellerProfile]
+  );
+
   const logout = useCallback(async () => {
     setLoading(true);
     try {
-      await auth().signOut();
+      await firebaseAuth.signOut();
       setIsSeller(false);
       setSellerProfile(null);
     } finally {
@@ -219,35 +364,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const refreshSellerProfile = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      // Check if user is a seller
-      const token = await auth().currentUser?.getIdTokenResult();
-      setIsSeller(token?.claims?.seller === true);
-
-      if (token?.claims?.seller === true) {
-        // Fetch seller profile
-        const sellerDocRef = doc(db, 'sellers', user.uid);
-        const sellerDoc = await getDoc(sellerDocRef);
-        if (sellerDoc.exists()) {
-          setSellerProfile(sellerDoc.data() as SellerProfile);
-        }
-      }
-    } catch (error) {
-      console.error('Error refreshing seller profile:', error);
-    }
-  }, [user]);
-
   const updateProfile = useCallback(
     async (profile: { displayName?: string | null; photoURL?: string | null; }) => {
       setLoading(true);
       try {
-        const currentUser = auth().currentUser;
+        const currentUser = authRN().currentUser;
         if (currentUser) {
-          await currentUser.updateProfile(profile);
-          const userDocRef = doc(db, 'users', currentUser.uid);
+          const profileToUpdate: { displayName?: string; photoURL?: string } = {};
+          if (profile.displayName !== undefined && profile.displayName !== null) {
+            profileToUpdate.displayName = profile.displayName;
+          }
+          if (profile.photoURL !== undefined && profile.photoURL !== null) {
+            profileToUpdate.photoURL = profile.photoURL;
+          }
+          await firebaseAuth.updateProfile(currentUser, profileToUpdate);
+          const userDocRef = doc(firestore, 'users', currentUser.uid);
           await updateDoc(userDocRef, profile);
           
           setUser(prevUser => {
@@ -270,8 +401,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     async (credential: FirebaseAuthTypes.AuthCredential) => {
       setLoading(true);
       try {
-        if (auth().currentUser) {
-          await auth().currentUser?.reauthenticateWithCredential(credential);
+        const currentUser = authRN().currentUser;
+        if (currentUser) {
+          await currentUser.reauthenticateWithCredential(credential);
         }
       } finally {
         setLoading(false);
@@ -283,8 +415,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const updatePassword = useCallback(async (password: string) => {
     setLoading(true);
     try {
-      if (auth().currentUser) {
-        await auth().currentUser?.updatePassword(password);
+      const currentUser = authRN().currentUser;
+      if (currentUser) {
+        await currentUser.updatePassword(password);
       }
     } finally {
       setLoading(false);
@@ -294,11 +427,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const sendPasswordResetEmail = useCallback(async (email: string) => {
     setLoading(true);
     try {
-      await auth().sendPasswordResetEmail(email);
+      await firebaseAuth.sendPasswordResetEmail(email);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const refreshUser = useCallback(async () => {
+    if (!user?.uid) return;
+    setLoading(true);
+    try {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setUser(userDoc.data() as User);
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid]);
+
+  const updateShippingAddress = useCallback(async (address: ShippingAddress) => {
+    if (!user?.uid) throw new Error('User not logged in');
+    setLoading(true);
+    try {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const currentAddresses = user.shippingAddresses || [];
+      const updatedAddresses = currentAddresses.map(addr => 
+        addr.id === address.id ? address : addr
+      );
+      await updateDoc(userDocRef, { shippingAddresses: updatedAddresses });
+      await refreshUser();
+    } catch (error) {
+      console.error('Error updating shipping address:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid, refreshUser, user?.shippingAddresses]);
+
+  const addShippingAddress = useCallback(async (address: ShippingAddress) => {
+    if (!user?.uid) throw new Error('User not logged in');
+    setLoading(true);
+    try {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const currentAddresses = user.shippingAddresses || [];
+      const newAddress = { ...address, id: Date.now().toString() };
+      const updatedAddresses = [...currentAddresses, newAddress];
+      await updateDoc(userDocRef, { shippingAddresses: updatedAddresses });
+      await refreshUser();
+    } catch (error) {
+      console.error('Error adding shipping address:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid, refreshUser, user?.shippingAddresses]);
+
+  const deleteShippingAddress = useCallback(async (addressId: string) => {
+    if (!user?.uid) throw new Error('User not logged in');
+    setLoading(true);
+    try {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const currentAddresses = user.shippingAddresses || [];
+      const updatedAddresses = currentAddresses.filter(addr => addr.id !== addressId);
+      await updateDoc(userDocRef, { shippingAddresses: updatedAddresses });
+      await refreshUser();
+    } catch (error) {
+      console.error('Error deleting shipping address:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid, refreshUser, user?.shippingAddresses]);
 
   return (
     <AuthContext.Provider
@@ -310,12 +513,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         loginWithEmail,
         registerWithEmail,
         registerAsSeller,
+        applyForSeller,
         logout,
         updateProfile,
         reauthenticate,
         updatePassword,
         sendPasswordResetEmail,
         refreshSellerProfile,
+        addShippingAddress,
+        updateShippingAddress,
+        deleteShippingAddress,
+        refreshUser,
       }}>
       {children}
     </AuthContext.Provider>

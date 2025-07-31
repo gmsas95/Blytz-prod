@@ -11,6 +11,7 @@ import {
 import {FollowedSellersScreen} from '../screens/SellerProfile/FollowedSellersScreen';
 import {HelpSupportScreen} from '../screens/Other/HelpSupportScreen';
 import ChangePasswordScreen from '../screens/UserProfile/ChangePasswordScreen';
+import SellerOnboardingScreen from '../screens/Seller/SellerOnboardingScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +32,10 @@ export const UserProfileNavigator = () => {
       <Stack.Screen
         name="ChangePassword"
         component={ChangePasswordScreen}
+      />
+      <Stack.Screen
+        name="SellerOnboarding"
+        component={SellerOnboardingScreen}
       />
     </Stack.Navigator>
   );

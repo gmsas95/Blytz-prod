@@ -5,14 +5,17 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../context/AuthContext';
+import { collection, addDoc } from 'firebase/firestore';
+import { firestore } from '../../config/firebase.config';
 import { Ionicons } from '@expo/vector-icons';
 
 const AddProductScreen = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -22,8 +25,32 @@ const AddProductScreen = () => {
     images: [],
   });
 
-  const handleAddProduct = () => {
-    Alert.alert('Coming Soon', 'Product creation will be implemented in Week 2');
+  const handleAddProduct = async () => {
+    if (!formData.name || !formData.price || !formData.stock || !formData.category) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const product = {
+        ...formData,
+        price: parseFloat(formData.price),
+        stock: parseInt(formData.stock),
+        sellerId: user?.uid,
+        sellerName: user?.displayName || 'Anonymous',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        status: 'active',
+      };
+
+      await addDoc(collection(firestore, 'products'), product);
+      Alert.alert('Success', 'Product added successfully!', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add product. Please try again.');
+      console.error('Error adding product:', error);
+    }
   };
 
   return (

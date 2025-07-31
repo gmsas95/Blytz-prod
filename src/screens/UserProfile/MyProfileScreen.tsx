@@ -20,6 +20,8 @@ import {
 import {Ionicons} from '@expo/vector-icons';
 import {useAuth} from '../../context/AuthContext';
 import {theme} from '../../config/theme';
+import {firestore} from '../../config/firebase.config';
+import {doc, getDoc} from 'firebase/firestore';
 
 export default function MyProfileScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -44,8 +46,11 @@ export default function MyProfileScreen() {
         totalSpent: 450.75,
       });
     };
-    loadStats();
-  }, []);
+    
+    if (user) {
+      loadStats();
+    }
+  }, [user]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -72,7 +77,54 @@ export default function MyProfileScreen() {
     ]);
   };
 
+  const [isSeller, setIsSeller] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    // Check if user is a seller
+    const checkSellerStatus = async () => {
+      if (user?.uid) {
+        try {
+          const sellerDocRef = doc(firestore, 'sellers', user.uid);
+          const sellerDoc = await getDoc(sellerDocRef);
+          if (isMounted) {
+            setIsSeller(sellerDoc.exists());
+          }
+        } catch (error) {
+          if (isMounted) {
+            console.log('Error checking seller status:', error);
+          }
+        }
+      }
+    };
+    
+    checkSellerStatus();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
   const menuItems = [
+    ...(isSeller ? [
+      {
+        id: 'seller-dashboard',
+        title: 'Seller Dashboard',
+        icon: 'storefront-outline',
+        screen: 'Seller',
+        color: theme.colors.primary,
+        badge: undefined,
+      }
+    ] : [
+      {
+        id: 'register-seller',
+        title: 'Become a Seller',
+        icon: 'storefront-outline',
+        screen: 'SellerOnboarding',
+        color: theme.colors.primary,
+      }
+    ]),
     {
       id: 'orders',
       title: 'Order History',

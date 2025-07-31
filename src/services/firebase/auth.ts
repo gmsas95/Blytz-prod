@@ -16,3 +16,5 @@ export const firebaseAuth = {
     profile: {displayName?: string; photoURL?: string},
   ) => user.updateProfile(profile),
 };
+
+export { authRN };

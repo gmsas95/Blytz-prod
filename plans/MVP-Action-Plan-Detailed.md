@@ -126,12 +126,12 @@ exports.finalizeAuction = functions.https.onCall(async (data, context) => {
 ### Week 3-4 Checklist
 
 #### Payment Setup
-- [ ] Add Curlec API keys to environment config
-- [ ] Create `PaymentService.ts` with Curlec integration:
+- [ ] Add Fiuu API keys to environment config
+- [ ] Create `PaymentService.ts` with Fiuu integration:
   ```typescript
-  // src/services/payments/curlec.ts
+  // src/services/payments/Fiuu.ts
   export const processPayment = async (amount: number, customerId: string) => {
-    // Curlec API integration
+    // Fiuu API integration
   };
   ```
 - [ ] Implement pre-authorization for bidding (hold funds)
@@ -230,12 +230,12 @@ exports.finalizeAuction = functions.https.onCall(async (data, context) => {
    firebase deploy --only functions
    ```
 
-2. **Add Curlec sandbox keys** to `app.config.js`:
+2. **Add Fiuu sandbox keys** to `app.config.js`:
    ```javascript
    extra: {
-     curlecApiKey: process.env.CURLEC_API_KEY,
-     curlecSecretKey: process.env.CURLEC_SECRET_KEY,
-     curlecEnvironment: 'sandbox',
+     FiuuApiKey: process.env.Fiuu_API_KEY,
+     FiuuSecretKey: process.env.Fiuu_SECRET_KEY,
+     FiuuEnvironment: 'sandbox',
    }
    ```
 

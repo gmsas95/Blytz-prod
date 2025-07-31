@@ -21,6 +21,25 @@ interface BusinessAddress {
 
 
 
+interface Stream {
+  status: string;
+}
+
+interface Product {
+  status: string;
+}
+
+interface Order {
+  status: string;
+  totalPrice: number;
+}
+
+interface DocumentUpload {
+  type: string;
+  data: string;
+  contentType: string;
+}
+
 /**
  * Creates a new seller profile when a user registers as a seller
  */
@@ -139,7 +158,7 @@ export const getSellerDashboard = functions.https.onCall(async (request: functio
 
     const totalStreams = streamsSnapshot.size;
     const activeStreams = streamsSnapshot.docs.filter(
-      (doc) => doc.data().status === 'live'
+      (doc) => (doc.data() as Stream).status === 'live'
     ).length;
 
     // Get seller's products
@@ -150,7 +169,7 @@ export const getSellerDashboard = functions.https.onCall(async (request: functio
 
     const totalProducts = productsSnapshot.size;
     const soldProducts = productsSnapshot.docs.filter(
-      (doc) => doc.data().status === 'sold'
+      (doc) => (doc.data() as Product).status === 'sold'
     ).length;
 
     // Get seller's orders
@@ -161,12 +180,12 @@ export const getSellerDashboard = functions.https.onCall(async (request: functio
 
     const totalOrders = ordersSnapshot.size;
     const pendingOrders = ordersSnapshot.docs.filter(
-      (doc) => doc.data().status === 'pending'
+      (doc) => (doc.data() as Order).status === 'pending'
     ).length;
 
     // Calculate revenue
     let totalRevenue = 0;
-    ordersSnapshot.forEach(doc => {
+    ordersSnapshot.forEach((doc) => {
       const order = doc.data();
       if (order.status === 'completed') {
         totalRevenue += order.totalPrice || 0;
@@ -203,7 +222,7 @@ export const uploadBusinessDocuments = functions.https.onCall(async (request: fu
   const { documents } = request.data;
 
   try {
-    const uploadPromises = documents.map(async (doc) => {
+    const uploadPromises = documents.map(async (doc: DocumentUpload) => {
       const fileName = `business-documents/${userId}/${doc.type}_${Date.now()}`;
       
       // Upload to Firebase Storage
@@ -258,17 +277,9 @@ export const updateSellerProfile = functions.https.onCall(async (request: functi
   }
 
   const userId = request.auth.uid;
-  const updates: SellerProfileUpdateData = request.data;
+  const updates: any = request.data;
 
   try {
-    // Remove sensitive fields that shouldn't be updated directly
-    delete updates.userId;
-    delete updates.createdAt;
-    delete updates.totalSales;
-    delete updates.totalRevenue;
-    delete updates.rating;
-    delete updates.reviewCount;
-
     updates.updatedAt = FieldValue.serverTimestamp();
 
     await firestore.collection('sellers').doc(userId).update(updates);

@@ -5,7 +5,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  
+  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -157,7 +157,8 @@ const SellerSignupScreen = () => {
         [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
       );
     } catch (error: unknown) {
-      Alert.alert('Registration Error', error.message);
+      const err = error as Error;
+      Alert.alert('Registration Error', err.message);
     } finally {
       setLoading(false);
     }

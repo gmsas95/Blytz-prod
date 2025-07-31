@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { FiuuPaymentService } from '../../services/fiuuPayment';
 
 interface FiuuPaymentButtonProps {
@@ -56,7 +56,8 @@ export const FiuuPaymentButton: React.FC<FiuuPaymentButtonProps> = ({
         onPaymentError(response.error || 'Payment failed');
       }
     } catch (error) {
-      onPaymentError(error.message || 'Payment processing failed');
+      const err = error as Error;
+      onPaymentError(err.message || 'Payment processing failed');
     } finally {
       setLoading(false);
     }

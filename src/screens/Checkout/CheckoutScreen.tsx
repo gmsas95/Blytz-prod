@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Linking,
 } from 'react-native';
 import {
   useRoute,
@@ -19,6 +20,7 @@ import {useAuth} from '../../context/AuthContext';
 import {useAuction} from '../../context/AuctionContext';
 import {CURRENCY_SYMBOLS} from '../../config/constants';
 import {getShippingRates} from '../../services/logistics/shipping';
+import {FiuuPaymentService} from '../../services/fiuuPayment';
 import type {ShippingAddress} from '../../types/auth';
 import {User} from '../../types/models/user';
 
@@ -33,6 +35,7 @@ interface Auction {
   startTime: {toDate: () => Date} | Date;
   endTime: {toDate: () => Date} | Date;
   imageUrls: string[];
+  sellerId: string;
   sellerName: string;
   sellerAvatar?: string;
   tags: string[];
@@ -71,11 +74,10 @@ export default function CheckoutScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAddress, setSelectedAddress] =
     useState<ShippingAddress | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<PaymentMethod | null>(null);
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
   const [selectedShipping, setSelectedShipping] =
     useState<ShippingOption | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -105,16 +107,16 @@ export default function CheckoutScreen() {
           return;
         }
 
-        setAuction(auctionData);
+        setAuction(auctionData as unknown as Auction);
 
         // Set default address if available
         if (
-          (user as User).shippingAddresses &&
-          (user as User).shippingAddresses!.length > 0
+          user.shippingAddresses &&
+          user.shippingAddresses.length > 0
         ) {
           const defaultAddress =
-            (user as User).shippingAddresses!.find(addr => addr.isDefault) ||
-            (user as User).shippingAddresses![0];
+            user.shippingAddresses.find(addr => addr.isDefault) ||
+            user.shippingAddresses[0];
           setSelectedAddress(defaultAddress);
 
           // Load shipping options
@@ -130,12 +132,12 @@ export default function CheckoutScreen() {
 
         // Set default payment method if available
         if (
-          (user as User).paymentMethods &&
-          (user as User).paymentMethods!.length > 0
+          user.paymentMethods &&
+          user.paymentMethods.length > 0
         ) {
           const defaultMethod =
-            (user as User).paymentMethods!.find(method => method.isDefault) ||
-            (user as User).paymentMethods![0];
+            user.paymentMethods.find(method => method.isDefault) ||
+            user.paymentMethods[0];
           setSelectedPaymentMethod(defaultMethod);
         }
       } catch (error) {
@@ -160,18 +162,9 @@ export default function CheckoutScreen() {
     navigation.navigate('ShippingAddress', {returnToCheckout: true});
   };
 
-  const handlePaymentSelect = () => {
-    navigation.navigate('PaymentMethods', {returnToCheckout: true});
-  };
-
   const handlePlaceOrder = async () => {
     if (!selectedAddress) {
       Alert.alert('Error', 'Please select a shipping address');
-      return;
-    }
-
-    if (!selectedPaymentMethod) {
-      Alert.alert('Error', 'Please select a payment method');
       return;
     }
 
@@ -182,26 +175,45 @@ export default function CheckoutScreen() {
 
     setIsProcessing(true);
 
-    // Clear any previous timeout just in case
-    if (processingTimeoutRef.current) {
-      clearTimeout(processingTimeoutRef.current);
-    }
+    try {
+      // Generate unique order ID
+      const orderId = FiuuPaymentService.generateOrderId();
+      
+      // Calculate total amount
+      const totalAmount = total;
+      
+      // Prepare payment request
+      const paymentRequest = {
+        amount: totalAmount,
+        orderId: orderId,
+        description: `Purchase of ${auction?.title}`,
+        customerEmail: user?.email || '',
+        customerName: user?.displayName || user?.email?.split('@')[0] || '',
+        customerPhone: selectedAddress.phoneNumber || '',
+        returnUrl: 'https://blytz.app/payment/success',
+        callbackUrl: 'https://blytz.app/payment/callback',
+      };
 
-    // Simulate order processing
-    processingTimeoutRef.current = setTimeout(() => {
+      // const orderIdFirestore = await createOrder(orderData);
+
+      // Initiate Fiuu payment
+      const paymentResponse = await FiuuPaymentService.createPayment(paymentRequest);
+
+      if (paymentResponse.status === '00' && paymentResponse.redirectUrl) {
+        // Redirect to Fiuu payment page
+        await Linking.openURL(paymentResponse.redirectUrl);
+      } else {
+        // Handle payment initiation error
+        Alert.alert('Payment Error', paymentResponse.error || 'Failed to initiate payment', [
+          {text: 'OK', style: 'default'},
+        ]);
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      Alert.alert('Error', 'Failed to process payment. Please try again.');
+    } finally {
       setIsProcessing(false);
-      Alert.alert('Order Placed', 'Your order has been successfully placed!', [
-        {
-          text: 'View Orders',
-          onPress: () => navigation.navigate('MyOrders'),
-        },
-        {
-          text: 'Continue Shopping',
-          onPress: () => navigation.navigate('Home'),
-        },
-      ]);
-      processingTimeoutRef.current = null; // Clear ref after execution
-    }, 2000);
+    }
   };
 
   if (isLoading) {
@@ -295,45 +307,24 @@ export default function CheckoutScreen() {
           <Text className="text-lg font-bold text-text mb-3">
             Payment Method
           </Text>
-          {selectedPaymentMethod ? (
-            <TouchableOpacity
-              className="flex-row items-center border border-border rounded-lg p-3 mb-3"
-              onPress={handlePaymentSelect}>
-              <Ionicons
-                name={
-                  selectedPaymentMethod.type === 'stripe'
-                    ? 'card'
-                    : 'cash-outline'
-                }
-                size={24}
-                color="#FF385C"
-                className="mr-3"
-              />
-              <View className="flex-1">
-                <Text className="text-base font-bold text-text">
-                  {selectedPaymentMethod.type === 'stripe'
-                    ? 'Credit Card'
-                    : 'Curlec'}
-                </Text>
-                {selectedPaymentMethod.last4 && (
-                  <Text className="text-sm text-text o-70">
-                    {selectedPaymentMethod.brand} ••••{' '}
-                    {selectedPaymentMethod.last4}
-                  </Text>
-                )}
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="text" />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              className="flex-row items-center p-3 border border-dashed border-border rounded-lg justify-center"
-              onPress={handlePaymentSelect}>
-              <Ionicons name="add-circle-outline" size={20} color="#FF385C" />
-              <Text className="ml-2 text-base text-primary font-bold">
-                Add Payment Method
+          <TouchableOpacity
+            className="flex-row items-center border border-border rounded-lg p-3 mb-3 bg-primary/10"
+            onPress={() => {}}>
+            <Ionicons
+              name="card-outline"
+              size={24}
+              color="#FF385C"
+              className="mr-3"
+            />
+            <View className="flex-1">
+              <Text className="text-base font-bold text-text">
+                Fiuu Payment Gateway
               </Text>
-            </TouchableOpacity>
-          )}
+              <Text className="text-sm text-text o-70">
+                Secure payment via Fiuu
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View className="mb-5 bg-card rounded-lg p-4 border border-border">
