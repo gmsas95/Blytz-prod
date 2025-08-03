@@ -1,0 +1,24 @@
+{
+  "featured_001": {
+    "id": "featured_001",
+    "streamId": "stream_001",
+    "title": "🔥 Vintage Designer Collection",
+    "sellerName": "Vintage Vibes",
+    "viewers": 1847,
+    "thumbnailUrl": "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400&h=300&fit=crop",
+    "category": "Fashion",
+    "priority": 1,
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  "featured_002": {
+    "id": "featured_002",
+    "streamId": "stream_002",
+    "title": "🎮 Gaming Gear Live",
+    "sellerName": "Tech Deals Hub",
+    "viewers": 5639,
+    "thumbnailUrl": "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop",
+    "category": "Electronics",
+    "priority": 2,
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+}

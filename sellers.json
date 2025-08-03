@@ -1,0 +1,44 @@
+{
+  "seller_vintage_001": {
+    "id": "seller_vintage_001",
+    "userId": "seller_vintage_001",
+    "businessName": "Vintage Vibes Emporium",
+    "businessDescription": "Curating authentic vintage pieces from the 60s, 70s, and 80s. Specializing in clothing, accessories, and home decor.",
+    "businessLogo": "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=200&h=200&fit=crop",
+    "businessCategory": "Vintage & Collectibles",
+    "verificationStatus": "verified",
+    "totalSales": 2847,
+    "rating": 4.8,
+    "followers": 15234,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "seller_tech_001": {
+    "id": "seller_tech_001",
+    "userId": "seller_tech_001",
+    "businessName": "Tech Deals Hub",
+    "businessDescription": "Latest tech gadgets, gaming gear, and electronics at unbeatable prices. All items tested and verified.",
+    "businessLogo": "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop",
+    "businessCategory": "Electronics & Gaming",
+    "verificationStatus": "verified",
+    "totalSales": 5639,
+    "rating": 4.9,
+    "followers": 28471,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "seller_artisan_001": {
+    "id": "seller_artisan_001",
+    "userId": "seller_artisan_001",
+    "businessName": "Artisan Craft Studio",
+    "businessDescription": "Handcrafted jewelry and accessories made with love. Each piece is unique and tells a story.",
+    "businessLogo": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop",
+    "businessCategory": "Handmade & Artisan",
+    "verificationStatus": "verified",
+    "totalSales": 1234,
+    "rating": 4.7,
+    "followers": 8923,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+}

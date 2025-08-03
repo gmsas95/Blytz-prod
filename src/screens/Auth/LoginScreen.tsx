@@ -12,6 +12,7 @@ import {
   Alert,
   StyleSheet,
   ScrollView,
+  SafeAreaView,
   ImageSourcePropType,
   ImageStyle,
   TextStyle,
@@ -77,13 +78,14 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flexContainer}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled">
-        <View style={styles.contentContainer}>
+    <SafeAreaView style={styles.flexContainer}>
+      <KeyboardAvoidingView
+        style={styles.flexContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled">
+          <View style={styles.contentContainer}>
           <View style={styles.headerContainer}>
             <Image
               source={icon as ImageSourcePropType} // Using a local asset
@@ -158,6 +160,7 @@ export default function LoginScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  </SafeAreaView>
   );
 }
 

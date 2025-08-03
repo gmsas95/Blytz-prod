@@ -1,0 +1,47 @@
+{
+  "seller_vintage_001": {
+    "uid": "seller_vintage_001",
+    "email": "vintage@demo.com",
+    "displayName": "Vintage Vibes",
+    "photoURL": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face",
+    "phoneNumber": "+1234567890",
+    "emailVerified": true,
+    "role": "seller",
+    "isVerified": true,
+    "rating": 4.8,
+    "totalSales": 2847,
+    "followers": 15234,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "seller_tech_001": {
+    "uid": "seller_tech_001",
+    "email": "tech@demo.com",
+    "displayName": "Tech Deals Hub",
+    "photoURL": "https://images.unsplash.com/photo-1494790108755-2616b612b5b9?w=150&h=150&fit=crop&crop=face",
+    "phoneNumber": "+1234567891",
+    "emailVerified": true,
+    "role": "seller",
+    "isVerified": true,
+    "rating": 4.9,
+    "totalSales": 5639,
+    "followers": 28471,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "seller_artisan_001": {
+    "uid": "seller_artisan_001",
+    "email": "artisan@demo.com",
+    "displayName": "Artisan Crafts",
+    "photoURL": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+    "phoneNumber": "+1234567892",
+    "emailVerified": true,
+    "role": "seller",
+    "isVerified": true,
+    "rating": 4.7,
+    "totalSales": 1234,
+    "followers": 8923,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+}

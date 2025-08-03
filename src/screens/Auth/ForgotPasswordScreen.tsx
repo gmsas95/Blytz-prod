@@ -10,6 +10,7 @@ import {
   Platform,
   StyleSheet,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {AuthStackParamList} from '../../navigation/AuthNavigator';
@@ -59,12 +60,13 @@ function ForgotPasswordScreen({navigation}: ForgotPasswordScreenProps) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flexContainer}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={styles.flexContainer}>
+      <KeyboardAvoidingView
+        style={styles.flexContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}>
@@ -116,6 +118,7 @@ function ForgotPasswordScreen({navigation}: ForgotPasswordScreenProps) {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  </SafeAreaView>
   );
 }
 
