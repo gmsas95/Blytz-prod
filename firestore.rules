@@ -4,7 +4,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Users can read and write their own profile data
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || true);
+      // Anyone can read public user profiles
+      allow read: if true;
+      // Users can only write their own profile
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
@@ -162,6 +164,8 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == resource.data.userId;
       // Users can write their own notifications (mark as read)
       allow write: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Allow system to create notifications (via Cloud Functions)
+      allow create: if request.auth != null;
     }
 
     // Shipping addresses (as subcollection of users)

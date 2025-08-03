@@ -11,10 +11,20 @@
         {
           "fieldPath": "viewers",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "liveStreams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
         },
         {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
+          "fieldPath": "startTime",
+          "order": "DESCENDING"
         }
       ]
     },
@@ -29,10 +39,34 @@
         {
           "fieldPath": "viewers",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "livestreams",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
         },
         {
-          "fieldPath": "__name__",
+          "fieldPath": "startTime",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
           "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
         }
       ]
     }
