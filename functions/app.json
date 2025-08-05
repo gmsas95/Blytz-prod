@@ -1,0 +1,8 @@
+{
+  "android": {
+    "package": "com.gmsas95.blytzfunctions"
+  },
+  "ios": {
+    "bundleIdentifier": "com.gmsas95.blytzfunctions"
+  }
+}

@@ -9,5 +9,8 @@
     "target": "es2021"
   },
   "compileOnSave": true,
-  "include": ["src"]
+  "include": [
+    "src"
+  ],
+  "extends": "expo/tsconfig.base"
 }

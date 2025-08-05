@@ -4,20 +4,6 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 const firestore = admin.firestore();
 
-interface BankAccount {
-  accountNumber: string;
-  bankName: string;
-  accountHolder: string;
-}
-
-interface BusinessAddress {
-    addressLine1: string;
-    addressLine2?: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    country: string;
-}
 
 
 
@@ -256,17 +242,6 @@ export const uploadBusinessDocuments = functions.https.onCall(async (request: fu
   }
 });
 
-interface SellerProfileUpdateData {
-  businessName?: string;
-  businessType?: string;
-  taxId?: string;
-  bankAccount?: BankAccount;
-  businessAddress?: BusinessAddress;
-  phoneNumber?: string;
-  email?: string;
-  businessDescription?: string;
-  updatedAt?: admin.firestore.FieldValue;
-}
 
 /**
  * Updates seller profile

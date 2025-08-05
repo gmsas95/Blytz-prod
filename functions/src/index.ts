@@ -14,6 +14,8 @@ admin.initializeApp();
 export * from './bidding';
 // Import seller onboarding functions
 export * from './sellerOnboarding';
+// Import seller functions
+export * from './seller';
 // Import webhook functions
 export * from './webhooks';
 
