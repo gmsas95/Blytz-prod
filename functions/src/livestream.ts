@@ -4,15 +4,10 @@ import * as admin from "firebase-admin";
 import { AccessToken } from "livekit-server-sdk";
 import { FieldValue } from "firebase-admin/firestore";
 
-// TODO: Set these as environment variables in your Firebase project
-// firebase functions:config:set livekit.api_key="YOUR_API_KEY"
-// firebase functions:config:set livekit.api_secret="YOUR_API_SECRET"
-const livekitApiKey = functions.config().livekit.api_key;
-const livekitApiSecret = functions.config().livekit.api_secret;
+// Demo LiveKit credentials for testing
+const livekitApiKey = functions.config().livekit?.api_key || 'demo-key';
+const livekitApiSecret = functions.config().livekit?.api_secret || 'demo-secret';
 
-interface GenerateTokenData {
-  roomName: string;
-}
 
 export const generateLiveKitToken = functions.https.onCall(async (request) => {
   // Ensure the user is authenticated
@@ -44,14 +39,6 @@ export const generateLiveKitToken = functions.https.onCall(async (request) => {
   };
 });
 
-interface CreateStreamData {
-  title: string;
-  description?: string;
-  category: string;
-  scheduledAt?: string;
-  products?: string[];
-  thumbnailUrl?: string;
-}
 
 export const createStream = functions.https.onCall(async (request) => {
   if (!request.auth) {
