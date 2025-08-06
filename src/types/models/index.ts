@@ -8,4 +8,5 @@ export * from './bid';
 export * from './order';
 export * from './notification';
 export * from './chatMessage';
+export * from './seller';
 

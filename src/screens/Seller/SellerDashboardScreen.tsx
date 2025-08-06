@@ -3,10 +3,10 @@ import {
   View,
   ScrollView,
   Text,
-  
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { SellerStackParamList, SellerTabParamList } from '../../navigation/SellerNavigator';
+import { functions } from '../../config/firebase.config';
+import { httpsCallable } from 'firebase/functions';
 
 type SellerDashboardScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<SellerTabParamList, 'Dashboard'>,
@@ -34,55 +36,20 @@ const SellerDashboardScreen = () => {
       setLoading(true);
       await refreshSellerProfile();
       
-      // For now, we'll use mock data until we implement the Cloud Functions
-      const mockData: SellerDashboardData = {
-        seller: {
-          userId: user?.uid || '',
-          businessName: sellerProfile?.businessName || 'Your Business',
-          businessType: sellerProfile?.businessType || 'individual',
-          taxId: sellerProfile?.taxId || '',
-          bankAccount: sellerProfile?.bankAccount || {
-            accountNumber: '',
-            bankName: '',
-            accountHolder: ''
-          },
-          businessAddress: sellerProfile?.businessAddress || {
-            addressLine1: '',
-            city: '',
-            state: '',
-            postalCode: '',
-            country: ''
-          },
-          phoneNumber: sellerProfile?.phoneNumber || '',
-          email: user?.email || '',
-          businessDescription: sellerProfile?.businessDescription || '',
-          isVerified: sellerProfile?.isVerified || false,
-          verificationStatus: sellerProfile?.verificationStatus || 'pending',
-          totalSales: sellerProfile?.totalSales || 0,
-          totalRevenue: sellerProfile?.totalRevenue || 0,
-          rating: sellerProfile?.rating || 0,
-          reviewCount: sellerProfile?.reviewCount || 0,
-          createdAt: sellerProfile?.createdAt || new Date(),
-          updatedAt: sellerProfile?.updatedAt || new Date()
-        },
-        stats: {
-          totalStreams: 12,
-          activeStreams: 2,
-          totalProducts: 45,
-          soldProducts: 23,
-          totalOrders: 67,
-          pendingOrders: 5,
-          totalRevenue: 2840.50
-        }
-      };
+      // Call Cloud Function to get real-time dashboard data
+      const getSellerDashboard = httpsCallable(functions, 'getSellerDashboard');
+      const result = await getSellerDashboard();
       
-      setDashboardData(mockData);
+      if (result.data) {
+        setDashboardData(result.data as SellerDashboardData);
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
+      Alert.alert('Error', 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
-  }, [refreshSellerProfile, sellerProfile, user]);
+  }, [refreshSellerProfile]);
 
   useEffect(() => {
     loadDashboardData();

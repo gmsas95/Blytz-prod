@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -23,5 +24,6 @@ try {
 
 const firestore = getFirestore(app);
 const storage = getStorage(app);
+const functions = getFunctions(app);
 
-export { firestore, storage, app };
+export { firestore, storage, functions, app };

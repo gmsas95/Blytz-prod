@@ -32,6 +32,14 @@
         "experimental:mcp"
       ],
       "env": {}
+    },
+    "gemini-collab": {
+      "type": "stdio",
+      "command": "/home/gmsas95/.claude-mcp-servers/gemini-collab/venv/bin/python",
+      "args": [
+        "/home/gmsas95/.claude-mcp-servers/gemini-collab/server.py"
+      ],
+      "env": {}
     }
   }
 }

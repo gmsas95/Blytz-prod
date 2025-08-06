@@ -260,7 +260,7 @@ export class OrderService {
       if (order.status === 'confirmed') {
         for (const item of order.items) {
           // Restore inventory via ProductService
-          const { ProductService } = require('./productService');
+          const { ProductService } = await import('./productService');
           await ProductService.updateInventory(item.productId, item.quantity);
         }
       }

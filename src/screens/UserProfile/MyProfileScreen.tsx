@@ -121,7 +121,7 @@ export default function MyProfileScreen() {
         id: 'register-seller',
         title: 'Become a Seller',
         icon: 'storefront-outline',
-        screen: 'SellerOnboarding',
+        screen: 'SellerSignup',
         color: theme.colors.primary,
       }
     ]),

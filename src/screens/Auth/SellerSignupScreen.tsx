@@ -7,32 +7,28 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  TextStyle,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import { SellerRegistrationData } from '../../types/models/seller';
-import { AuthStackParamList } from '../../navigation/AuthNavigator';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
-type SellerSignupScreenNavigationProp = NativeStackNavigationProp<
-  AuthStackParamList,
-  'SellerSignup'
->;
+import { SellerRegistrationData } from '../../types/models';
+import { theme } from '../../config/theme';
 
 const SellerSignupScreen = () => {
-  const navigation = useNavigation<SellerSignupScreenNavigationProp>();
+  const navigation = useNavigation();
   const { registerAsSeller } = useAuth();
 
-  const [formData, setFormData] = useState<Partial<SellerRegistrationData>>({
+  const [formData, setFormData] = useState<SellerRegistrationData>({
     businessName: '',
-    businessType: 'individual',
-    taxId: '',
     email: '',
     password: '',
     confirmPassword: '',
+    taxId: '',
     phoneNumber: '',
-    businessDescription: '',
     bankAccount: {
       accountNumber: '',
       bankName: '',
@@ -40,403 +36,402 @@ const SellerSignupScreen = () => {
     },
     businessAddress: {
       addressLine1: '',
-      addressLine2: '',
       city: '',
       state: '',
       postalCode: '',
       country: 'Malaysia',
     },
+    businessType: 'individual',
   });
 
   const [loading, setLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
 
   const handleInputChange = (field: keyof SellerRegistrationData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleBankAccountChange = (field: keyof SellerRegistrationData['bankAccount'], value: string) => {
-    setFormData(prev => ({
+  const handleNestedChange = (parent: keyof SellerRegistrationData, field: string, value: string) => {
+    setFormData((prev) => ({
       ...prev,
-      bankAccount: { ...(prev.bankAccount || { accountNumber: '', bankName: '', accountHolder: '' }), [field]: value },
+      [parent]: { 
+        ...(prev[parent] as Record<string, string> || {}), 
+        [field]: value 
+      }
     }));
   };
 
-  const handleBusinessAddressChange = (field: keyof SellerRegistrationData['businessAddress'], value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      businessAddress: { ...(prev.businessAddress || { addressLine1: '', city: '', state: '', postalCode: '', country: '' }), [field]: value },
-    }));
-  };
-
-  const validateStep1 = () => {
-    if (!formData.businessName?.trim()) {
-      Alert.alert('Error', 'Business name is required');
+  const validateForm = () => {
+    if (!formData.businessName.trim()) {
+      Alert.alert('Required', 'Business name is required');
       return false;
     }
-    if (!formData.email?.trim()) {
-      Alert.alert('Error', 'Email is required');
+    if (!formData.email.trim()) {
+      Alert.alert('Required', 'Email is required');
       return false;
     }
-    if (!formData.password?.trim()) {
-      Alert.alert('Error', 'Password is required');
+    if (!formData.password || formData.password.length < 6) {
+      Alert.alert('Required', 'Password must be at least 6 characters');
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return false;
     }
-    return true;
-  };
-
-  const validateStep2 = () => {
-    if (!formData.taxId?.trim()) {
-      Alert.alert('Error', 'Tax ID/SSM number is required');
+    if (!formData.taxId.trim()) {
+      Alert.alert('Required', 'Tax ID/SSM number is required');
       return false;
     }
-    if (!formData.phoneNumber?.trim()) {
-      Alert.alert('Error', 'Phone number is required');
+    if (!formData.phoneNumber.trim()) {
+      Alert.alert('Required', 'Phone number is required');
       return false;
     }
-    if (!formData.businessAddress?.addressLine1?.trim()) {
-      Alert.alert('Error', 'Business address is required');
+    if (!formData.bankAccount.accountNumber.trim()) {
+      Alert.alert('Required', 'Bank account number is required');
       return false;
     }
-    return true;
-  };
-
-  const validateStep3 = () => {
-    if (!formData.bankAccount?.accountNumber?.trim()) {
-      Alert.alert('Error', 'Bank account number is required');
+    if (!formData.bankAccount.bankName.trim()) {
+      Alert.alert('Required', 'Bank name is required');
       return false;
     }
-    if (!formData.bankAccount?.bankName?.trim()) {
-      Alert.alert('Error', 'Bank name is required');
-      return false;
-    }
-    if (!formData.bankAccount?.accountHolder?.trim()) {
-      Alert.alert('Error', 'Account holder name is required');
+    if (!formData.businessAddress.addressLine1.trim()) {
+      Alert.alert('Required', 'Business address is required');
       return false;
     }
     return true;
-  };
-
-  const handleNext = () => {
-    if (currentStep === 1 && validateStep1()) {
-      setCurrentStep(2);
-    } else if (currentStep === 2 && validateStep2()) {
-      setCurrentStep(3);
-    }
-  };
-
-  const handlePrevious = () => {
-    setCurrentStep(prev => Math.max(1, prev - 1));
   };
 
   const handleRegister = async () => {
-    if (!validateStep3()) return;
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
-      const sellerData: SellerRegistrationData = {
-        email: formData.email!,
-        password: formData.password!,
-        businessName: formData.businessName!,
-        businessType: formData.businessType!,
-        taxId: formData.taxId!,
-        phoneNumber: formData.phoneNumber!,
-        businessDescription: formData.businessDescription,
-        bankAccount: formData.bankAccount!,
-        businessAddress: formData.businessAddress!,
-      };
-
-      await registerAsSeller(sellerData);
+      await registerAsSeller(formData);
       Alert.alert(
-        'Success',
-        'Seller account created successfully! Please wait for verification.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+        'Welcome to Blytz!',
+        'Your seller account has been created successfully. Start selling with live streams!',
+        [{ text: 'Get Started', onPress: () => navigation.navigate('SellerTabs' as never) }]
       );
     } catch (error: unknown) {
       const err = error as Error;
-      Alert.alert('Registration Error', err.message);
+      Alert.alert('Registration Error', err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const renderStep1 = () => (
-    <View className="space-y-4">
-      <Text className="text-xl font-bold mb-4">Business Information</Text>
-      
-      <View>
-        <Text className="text-sm font-medium mb-2">Business Name *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white"
-          placeholder="Enter your business name"
-          value={formData.businessName}
-          onChangeText={(text) => handleInputChange('businessName', text)}
-        />
-      </View>
+  interface InputFieldProps {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  secureTextEntry?: boolean;
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'number-pad';
+  icon?: keyof typeof Ionicons.glyphMap;
+}
 
-      <View>
-        <Text className="text-sm font-medium mb-2">Business Type</Text>
-        <View className="flex-row space-x-4">
-          {['individual', 'company', 'partnership'].map((type) => (
-            <TouchableOpacity
-              key={type}
-              className={`flex-1 p-3 rounded-lg border ${
-                formData.businessType === type
-                  ? 'border-purple-500 bg-purple-50'
-                  : 'border-gray-300'
-              }`}
-              onPress={() => handleInputChange('businessType', type as 'individual' | 'company' | 'partnership')}
-            >
-              <Text className="text-center capitalize">{type}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View>
-        <Text className="text-sm font-medium mb-2">Email Address *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white"
-          placeholder="your@email.com"
-          keyboardType="email-address"
-          value={formData.email}
-          onChangeText={(text) => handleInputChange('email', text)}
-        />
-      </View>
-
-      <View>
-        <Text className="text-sm font-medium mb-2">Password *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white"
-          placeholder="At least 6 characters"
-          secureTextEntry
-          value={formData.password}
-          onChangeText={(text) => handleInputChange('password', text)}
-        />
-      </View>
-
-      <View>
-        <Text className="text-sm font-medium mb-2">Confirm Password *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white"
-          placeholder="Confirm your password"
-          secureTextEntry
-          value={formData.confirmPassword}
-          onChangeText={(text) => handleInputChange('confirmPassword', text)}
-        />
-      </View>
-    </View>
-  );
-
-  const renderStep2 = () => (
-    <View className="space-y-4">
-      <Text className="text-xl font-bold mb-4">Business Details</Text>
-      
-      <View>
-        <Text className="text-sm font-medium mb-2">Tax ID/SSM Number *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white"
-          placeholder="Tax ID or SSM registration number"
-          value={formData.taxId}
-          onChangeText={(text) => handleInputChange('taxId', text)}
-        />
-      </View>
-
-      <View>
-        <Text className="text-sm font-medium mb-2">Phone Number *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white"
-          placeholder="+60 123 456 7890"
-          keyboardType="phone-pad"
-          value={formData.phoneNumber}
-          onChangeText={(text) => handleInputChange('phoneNumber', text)}
-        />
-      </View>
-
-      <View>
-        <Text className="text-sm font-medium mb-2">Business Address *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white mb-2"
-          placeholder="Address Line 1"
-          value={formData.businessAddress?.addressLine1}
-          onChangeText={(text) => handleBusinessAddressChange('addressLine1', text)}
-        />
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white mb-2"
-          placeholder="Address Line 2 (Optional)"
-          value={formData.businessAddress?.addressLine2}
-          onChangeText={(text) => handleBusinessAddressChange('addressLine2', text)}
-        />
-        <View className="flex-row space-x-2">
-          <View className="flex-1">
-            <TextInput
-              className="border border-gray-300 rounded-lg p-3 bg-white"
-              placeholder="City"
-              value={formData.businessAddress?.city}
-              onChangeText={(text) => handleBusinessAddressChange('city', text)}
-            />
+const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onChangeText, secureTextEntry = false, keyboardType = 'default', icon }) => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.inputWrapper}>
+        {icon && (
+          <View style={styles.iconContainer}>
+            <Ionicons name={icon} size={20} color={theme.colors.secondary} />
           </View>
-          <View className="flex-1">
-            <TextInput
-              className="border border-gray-300 rounded-lg p-3 bg-white"
-              placeholder="State"
-              value={formData.businessAddress?.state}
-              onChangeText={(text) => handleBusinessAddressChange('state', text)}
-            />
-          </View>
-        </View>
-        <View className="flex-row space-x-2 mt-2">
-          <View className="flex-1">
-            <TextInput
-              className="border border-gray-300 rounded-lg p-3 bg-white"
-              placeholder="Postal Code"
-              value={formData.businessAddress?.postalCode}
-              onChangeText={(text) => handleBusinessAddressChange('postalCode', text)}
-            />
-          </View>
-          <View className="flex-1">
-            <TextInput
-              className="border border-gray-300 rounded-lg p-3 bg-white"
-              placeholder="Country"
-              value={formData.businessAddress?.country}
-              onChangeText={(text) => handleBusinessAddressChange('country', text)}
-            />
-          </View>
-        </View>
-      </View>
-
-      <View>
-        <Text className="text-sm font-medium mb-2">Business Description</Text>
+        )}
         <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white h-20"
-          placeholder="Tell us about your business..."
-          multiline
-          value={formData.businessDescription}
-          onChangeText={(text) => handleInputChange('businessDescription', text)}
+          style={[
+            styles.input,
+            icon ? styles.inputWithIcon : null
+          ]}
+          placeholder={placeholder}
+          placeholderTextColor={theme.colors.secondary}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType}
+          returnKeyType="next"
+          blurOnSubmit={false}
         />
-      </View>
-    </View>
-  );
-
-  const renderStep3 = () => (
-    <View className="space-y-4">
-      <Text className="text-xl font-bold mb-4">Banking Information</Text>
-      
-      <View>
-        <Text className="text-sm font-medium mb-2">Bank Name *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white"
-          placeholder="Maybank, CIMB, Public Bank, etc."
-          value={formData.bankAccount?.bankName}
-          onChangeText={(text) => handleBankAccountChange('bankName', text)}
-        />
-      </View>
-
-      <View>
-        <Text className="text-sm font-medium mb-2">Account Number *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white"
-          placeholder="1234567890"
-          keyboardType="number-pad"
-          value={formData.bankAccount?.accountNumber}
-          onChangeText={(text) => handleBankAccountChange('accountNumber', text)}
-        />
-      </View>
-
-      <View>
-        <Text className="text-sm font-medium mb-2">Account Holder Name *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3 bg-white"
-          placeholder="Name as per bank account"
-          value={formData.bankAccount?.accountHolder}
-          onChangeText={(text) => handleBankAccountChange('accountHolder', text)}
-        />
-      </View>
-
-      <View className="bg-yellow-50 p-4 rounded-lg">
-        <Text className="text-sm text-yellow-800">
-          <Ionicons name="information-circle" size={16} color="#92400e" />
-          This account will be used for receiving payments from your sales.
-        </Text>
       </View>
     </View>
   );
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
-      <View className="p-4">
-        <View className="flex-row items-center mb-6">
-          <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold">Seller Registration</Text>
+    <View style={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="always"
+        showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Ionicons name="storefront-outline" size={48} color={theme.colors.primary} />
+          <Text style={styles.title}>Become a Seller</Text>
+          <Text style={styles.subtitle}>Start your live selling journey</Text>
         </View>
 
-        {/* Progress indicator */}
-        <View className="flex-row justify-between mb-6">
-          {[1, 2, 3].map((step) => (
-            <View key={step} className="flex-1 items-center">
-              <View
-                className={`w-8 h-8 rounded-full items-center justify-center ${
-                  step === currentStep
-                    ? 'bg-purple-500'
-                    : step < currentStep
-                    ? 'bg-green-500'
-                    : 'bg-gray-300'
-                }`}
-              >
-                <Text className="text-white font-bold">{step}</Text>
+        {/* Form */}
+        <View style={styles.formContainer}>
+          {/* Business Account Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Business Account</Text>
+            
+            <InputField
+              label="Business Name"
+              placeholder="Enter your business name"
+              value={formData.businessName}
+              onChangeText={(text) => handleInputChange('businessName', text)}
+              icon="business-outline"
+            />
+            
+            <InputField
+              label="Email Address"
+              placeholder="you@business.com"
+              value={formData.email}
+              onChangeText={(text) => handleInputChange('email', text)}
+              keyboardType="email-address"
+              icon="mail-outline"
+            />
+            
+            <InputField
+              label="Password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChangeText={(text) => handleInputChange('password', text)}
+              secureTextEntry
+              icon="lock-closed-outline"
+            />
+            
+            <InputField
+              label="Confirm Password"
+              placeholder="••••••••"
+              value={formData.confirmPassword || ''}
+              onChangeText={(text) => handleInputChange('confirmPassword', text)}
+              secureTextEntry
+              icon="lock-closed-outline"
+            />
+          </View>
+
+          {/* Business Details Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Business Details</Text>
+            
+            <InputField
+              label="Tax ID / SSM Number"
+              placeholder="12345678-X"
+              value={formData.taxId}
+              onChangeText={(text) => handleInputChange('taxId', text)}
+              icon="card-outline"
+            />
+            
+            <InputField
+              label="Phone Number"
+              placeholder="+60 123 456 7890"
+              value={formData.phoneNumber}
+              onChangeText={(text) => handleInputChange('phoneNumber', text)}
+              keyboardType="phone-pad"
+              icon="call-outline"
+            />
+            
+            <InputField
+              label="Business Address"
+              placeholder="Street address"
+              value={formData.businessAddress.addressLine1}
+              onChangeText={(text) => handleNestedChange('businessAddress', 'addressLine1', text)}
+              icon="location-outline"
+            />
+            
+            <View style={styles.row}>
+              <View style={styles.halfInput}>
+                <InputField
+                  label="City"
+                  placeholder="City"
+                  value={formData.businessAddress.city}
+                  onChangeText={(text) => handleNestedChange('businessAddress', 'city', text)}
+                  icon="business-outline"
+                />
               </View>
-              <Text className="text-xs mt-1">{
-                step === 1 ? 'Business' : step === 2 ? 'Details' : 'Banking'
-              }</Text>
+              <View style={styles.halfInput}>
+                <InputField
+                  label="State"
+                  placeholder="State"
+                  value={formData.businessAddress.state}
+                  onChangeText={(text) => handleNestedChange('businessAddress', 'state', text)}
+                  icon="business-outline"
+                />
+              </View>
             </View>
-          ))}
-        </View>
+          </View>
 
-        {/* Step content */}
-        <View className="bg-white rounded-lg p-4 shadow-sm mb-6">
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
-        </View>
+          {/* Banking Details Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Banking Details</Text>
+            
+            <InputField
+              label="Bank Name"
+              placeholder="Maybank, CIMB, RHB, etc."
+              value={formData.bankAccount.bankName}
+              onChangeText={(text) => handleNestedChange('bankAccount', 'bankName', text)}
+              icon="business-outline"
+            />
+            
+            <InputField
+              label="Account Number"
+              placeholder="1234567890"
+              value={formData.bankAccount.accountNumber}
+              onChangeText={(text) => handleNestedChange('bankAccount', 'accountNumber', text)}
+              keyboardType="number-pad"
+              icon="keypad-outline"
+            />
+            
+            <InputField
+              label="Account Holder Name"
+              placeholder="Name as per bank records"
+              value={formData.bankAccount.accountHolder}
+              onChangeText={(text) => handleNestedChange('bankAccount', 'accountHolder', text)}
+              icon="person-outline"
+            />
+          </View>
 
-        {/* Navigation buttons */}
-        <View className="flex-row justify-between">
+          {/* Submit Button */}
           <TouchableOpacity
-            className="px-6 py-3 border border-gray-300 rounded-lg"
-            onPress={handlePrevious}
-            disabled={currentStep === 1}
-          >
-            <Text className="text-gray-700">Previous</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="px-6 py-3 bg-purple-500 rounded-lg"
-            onPress={currentStep === 3 ? handleRegister : handleNext}
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleRegister}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.colors.onPrimary} />
             ) : (
-              <Text className="text-white font-bold">{currentStep === 3 ? 'Register' : 'Next'}</Text>
+              <Text style={styles.buttonText}>REGISTER AS SELLER</Text>
             )}
           </TouchableOpacity>
-        </View>
 
-        <View className="mt-8 items-center">
-          <Text className="text-gray-600">Already have an account?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text className="text-purple-500 font-bold">Login here</Text>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.linkText}>Already have an account? Sign In</Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingVertical: theme.spacing.xl,
+    alignItems: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+  },
+  title: {
+    ...theme.typography.h3,
+    color: theme.colors.onBackground,
+    marginTop: theme.spacing.sm,
+    textAlign: 'center',
+  },
+  subtitle: {
+    ...theme.typography.body1,
+    color: theme.colors.secondary,
+    marginTop: theme.spacing.xs,
+    textAlign: 'center',
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 400,
+    paddingHorizontal: theme.spacing.md,
+  },
+  section: {
+    marginBottom: theme.spacing.lg,
+  },
+  sectionTitle: {
+    ...theme.typography.h5,
+    color: theme.colors.onBackground,
+    marginBottom: theme.spacing.md,
+  },
+  inputContainer: {
+    marginBottom: theme.spacing.md,
+  },
+  label: {
+    ...theme.typography.subtitle1,
+    color: theme.colors.onBackground,
+    marginBottom: theme.spacing.xs,
+  },
+  inputWrapper: {
+    position: 'relative',
+  },
+  iconContainer: {
+    position: 'absolute',
+    left: theme.spacing.sm,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+    zIndex: 1,
+  },
+  input: {
+    backgroundColor: theme.colors.surface,
+    color: theme.colors.onSurface,
+    borderRadius: 8,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
+    fontFamily: 'Inter',
+    fontSize: 16,
+    minHeight: 48,
+    width: '100%',
+  },
+  inputWithIcon: {
+    paddingLeft: theme.spacing.xl,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  halfInput: {
+    width: '48%',
+  },
+  button: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    marginTop: theme.spacing.lg,
+    width: '100%',
+    maxWidth: 400,
+  },
+  buttonDisabled: {
+    backgroundColor: theme.colors.secondary,
+    opacity: 0.6,
+  },
+    buttonText: {
+    color: theme.colors.onPrimary,
+    fontSize: 16,
+    fontWeight: '700' as const,
+    letterSpacing: 1.25,
+    textTransform: 'uppercase' as const,
+  } as TextStyle,
+  linkButton: {
+    marginTop: theme.spacing.md,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 400,
+  },
+  linkText: {
+    ...theme.typography.body1,
+    color: theme.colors.primary,
+  } as TextStyle,
+});
 
 export default SellerSignupScreen;

@@ -51,13 +51,14 @@ interface RefundResponse {
   error?: string;
 }
 
+import * as crypto from 'crypto';
+
 export class FiuuPaymentService {
   private static generateHash(data: string): string {
-    const crypto = require('crypto');
     return crypto.createHash('sha256').update(data).digest('hex');
   }
 
-  private static generateSignature(params: any): string {
+  private static generateSignature(params: Record<string, unknown>): string {
     const sortedParams = Object.keys(params)
       .filter(key => key !== 'signature' && params[key] !== undefined && params[key] !== '')
       .sort()

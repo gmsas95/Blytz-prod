@@ -1,5 +1,5 @@
 import { firestore } from '../config/firebase.config';
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, startAfter, Timestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, startAfter, Timestamp, DocumentSnapshot } from 'firebase/firestore';
 import { Product, ProductCategory, BulkUploadResult, BulkUploadTemplate, BulkUploadRow } from '../types/models/product';
 import { storage } from '../config/firebase.config';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -57,9 +57,9 @@ export class ProductService {
     category?: string;
     status?: string;
     limit?: number;
-    lastDoc?: any;
+    lastDoc?: DocumentSnapshot | null;
     searchTerm?: string;
-  } = {}): Promise<{ products: Product[]; lastDoc: any; hasMore: boolean }> {
+  } = {}): Promise<{ products: Product[]; lastDoc: DocumentSnapshot | null; hasMore: boolean }> {
     try {
       let q = query(this.productsRef, where('status', '==', status));
 

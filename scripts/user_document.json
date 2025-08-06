@@ -1,0 +1,31 @@
+{
+  "users": {
+    "YaDaYBRGnVMFXepKO9k8ddYRLUr2": {
+      "uid": "YaDaYBRGnVMFXepKO9k8ddYRLUr2",
+      "email": "test@gmail.com",
+      "displayName": "SAS",
+      "photoURL": null,
+      "phoneNumber": null,
+      "emailVerified": true,
+      "role": "buyer",
+      "isVerified": false,
+      "rating": 0,
+      "totalSales": 0,
+      "followers": 0,
+      "createdAt": {
+        "__type__": "Timestamp",
+        "value": {
+          "_seconds": 1704067200,
+          "_nanoseconds": 0
+        }
+      },
+      "updatedAt": {
+        "__type__": "Timestamp",
+        "value": {
+          "_seconds": 1704067200,
+          "_nanoseconds": 0
+        }
+      }
+    }
+  }
+}

@@ -6,7 +6,7 @@ module.exports = {
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled: true,
+    newArchEnabled: false,
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
@@ -50,6 +50,8 @@ module.exports = {
     plugins: [
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
+      "@livekit/react-native-expo-plugin",
+      "@config-plugins/react-native-webrtc",
       [
         "expo-build-properties",
         {

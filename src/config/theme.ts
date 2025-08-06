@@ -1,3 +1,5 @@
+import { TextStyle } from 'react-native';
+
 const colors = {
   primary: '#FF385C',
   primaryVariant: '#E0002D',
@@ -21,7 +23,7 @@ const spacing = {
   xl: 40,
 };
 
-const typography = {
+const typography: Record<string, TextStyle> = {
   h1: {
     fontSize: 40,
     fontWeight: '700',

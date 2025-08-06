@@ -138,10 +138,12 @@ const NotificationCard: React.FC<NotificationCardProps> = memo(({
   }));
 
   const handlePress = () => {
+    "worklet";
     if (isBulkMode) {
       onToggleSelection?.(notification.id);
     } else {
       scale.value = withSpring(0.98, { damping: 15, stiffness: 200 }, () => {
+        "worklet";
         scale.value = withSpring(1);
         onPress(notification);
         swipeableRef.current?.close();

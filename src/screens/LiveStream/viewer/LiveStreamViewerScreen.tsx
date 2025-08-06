@@ -1,58 +1,44 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, ViewToken } from 'react-native';
-import { useLiveStreams } from '../../../hooks/useLiveStream';
+import { useLiveStream } from '../../../hooks/useLiveStream';
 import { theme } from '../../../config/theme';
 import ScreenWrapper from '../../../components/shared/ScreenWrapper';
 import LiveStreamItem from '../../../components/LiveStream/viewer/LiveStreamItem';
+import { Participant } from 'livekit-client';
 
 const LiveStreamViewerScreen = () => {
-  const { livestreams, loading, loadingMore, error, loadMore } = useLiveStreams();
+  const { room, isConnected, participants } = useLiveStream('test-room', 'test-participant');
   const [activeStreamId, setActiveStreamId] = useState<string | null>(null);
 
   const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: Array<ViewToken> }) => {
     if (viewableItems.length > 0) {
       const firstVisibleItem = viewableItems[0];
       if (firstVisibleItem.item && firstVisibleItem.isViewable) {
-        setActiveStreamId(firstVisibleItem.item.id);
+        setActiveStreamId(firstVisibleItem.item.sid);
       }
     }
   }, []);
 
   const renderFooter = () => {
-    if (!loadingMore) return null;
-    return (
-      <View style={styles.loadingMoreContainer}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
-      </View>
-    );
+    return null;
   };
 
-  if (loading) {
+  if (!isConnected) {
     return (
       <ScreenWrapper>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.infoText}>Loading Streams...</Text>
+          <Text style={styles.infoText}>Connecting to Stream...</Text>
         </View>
       </ScreenWrapper>
     );
   }
 
-  if (error) {
+  if (participants.length === 0) {
     return (
       <ScreenWrapper>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>Error: {error.message}</Text>
-        </View>
-      </ScreenWrapper>
-    );
-  }
-
-  if (!loading && livestreams.length === 0) {
-    return (
-      <ScreenWrapper>
-        <View style={styles.centerContainer}>
-          <Text style={styles.infoText}>No live streams available at the moment.</Text>
+          <Text style={styles.infoText}>No one is in the stream.</Text>
         </View>
       </ScreenWrapper>
     );
@@ -60,16 +46,14 @@ const LiveStreamViewerScreen = () => {
 
   return (
     <FlatList
-      data={livestreams}
-      renderItem={({ item }) => <LiveStreamItem item={item} isActive={item.id === activeStreamId} />}
-      keyExtractor={(item) => item.id}
+      data={participants}
+      renderItem={({ item }) => <LiveStreamItem item={item} isActive={item.sid === activeStreamId} />}
+      keyExtractor={(item) => item.sid}
       pagingEnabled
       onViewableItemsChanged={onViewableItemsChanged}
       viewabilityConfig={{
         itemVisiblePercentThreshold: 50,
       }}
-      onEndReached={loadMore}
-      onEndReachedThreshold={0.5}
       ListFooterComponent={renderFooter}
       showsVerticalScrollIndicator={false}
       style={{ flex: 1, backgroundColor: '#000' }}

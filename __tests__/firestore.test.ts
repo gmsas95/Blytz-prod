@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react-native';
-import { useLiveStreams } from '../src/hooks/useLiveStream';
+import { useLiveStream } from '../src/hooks/useLiveStream';
 
 // Mock Firebase services
 jest.mock('@react-native-firebase/firestore', () => ({
@@ -15,11 +15,11 @@ jest.mock('@react-native-firebase/firestore', () => ({
 }));
 
 // Simple test to verify the hook renders
-describe('useLiveStreams', () => {
+describe('useLiveStream', () => {
   it('should render without crashing', () => {
-    const { result } = renderHook(() => useLiveStreams());
+    const { result } = renderHook(() => useLiveStream('test-room', 'test-participant'));
     
     expect(result.current).toBeDefined();
-    expect(Array.isArray(result.current.livestreams)).toBe(true);
+    expect(result.current.isConnected).toBe(false);
   });
 });

@@ -49,3 +49,5 @@ functions/lib/
 .vscode/
 .idea/
 google-services.json
+\n/scripts/
+\n/pre-deployment-checklist/
