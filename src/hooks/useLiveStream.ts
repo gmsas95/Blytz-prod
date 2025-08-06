@@ -1,50 +1,67 @@
 // src/hooks/useLiveStream.ts
-import { useState, useEffect } from 'react';
-import { Room, RoomEvent, LocalParticipant, RemoteParticipant, Participant } from 'livekit-client';
+import { useState, useEffect, useCallback } from 'react';
+import { Room, RoomEvent, Participant } from 'livekit-client';
 import { getLiveKitToken, connectToRoom } from '../services/livekit';
 
-export const useLiveStream = (roomName: string, participantName: string) => {
+export const useLiveStream = () => {
   const [room, setRoom] = useState<Room | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
 
+  const connectToRoom = useCallback(async (roomName: string, participantName: string): Promise<Room> => {
+    try {
+      const token = await getLiveKitToken(roomName, participantName);
+      const roomInstance: Room = await connectToRoom(roomName, token);
+
+      setRoom(roomInstance);
+      setIsConnected(true);
+
+      const updateParticipants = () => {
+        const allParticipants: Participant[] = [
+          roomInstance.localParticipant, 
+          ...Array.from(roomInstance.remoteParticipants.values())
+        ];
+        setParticipants(allParticipants);
+      };
+
+      roomInstance.on(RoomEvent.ParticipantConnected, updateParticipants);
+      roomInstance.on(RoomEvent.ParticipantDisconnected, updateParticipants);
+      roomInstance.on(RoomEvent.Disconnected, () => {
+        setIsConnected(false);
+        setParticipants([]);
+      });
+
+      updateParticipants();
+      return roomInstance;
+
+    } catch (error) {
+      console.error("Error connecting to LiveKit room:", error);
+      throw error;
+    }
+  }, []);
+
+  const disconnectFromRoom = useCallback(async () => {
+    if (room) {
+      await room.disconnect();
+      setRoom(null);
+      setIsConnected(false);
+      setParticipants([]);
+    }
+  }, [room]);
+
   useEffect(() => {
-    const setupAndConnect = async () => {
-      try {
-        const token = await getLiveKitToken(roomName, participantName);
-        const roomInstance = await connectToRoom(roomName, token);
-
-        setRoom(roomInstance);
-        setIsConnected(true);
-
-        const updateParticipants = () => {
-          // TODO: Fix this any cast
-          const allParticipants = [(roomInstance as any).localParticipant, ...Array.from((roomInstance as any).participants.values())] as Participant[];
-          setParticipants(allParticipants);
-        };
-
-        roomInstance.on(RoomEvent.ParticipantConnected, updateParticipants);
-        roomInstance.on(RoomEvent.ParticipantDisconnected, updateParticipants);
-        roomInstance.on(RoomEvent.Disconnected, () => {
-          setIsConnected(false);
-          setParticipants([]);
-        });
-
-        updateParticipants();
-
-      } catch (error) {
-        console.error("Error setting up LiveKit room:", error);
+    return () => {
+      if (room) {
+        room.disconnect();
       }
     };
+  }, [room]);
 
-    if (roomName && participantName) {
-      setupAndConnect();
-    }
-
-    return () => {
-      room?.disconnect();
-    };
-  }, [roomName, participantName, room]);
-
-  return { room, isConnected, participants };
+  return { 
+    room, 
+    isConnected, 
+    participants, 
+    connectToRoom, 
+    disconnectFromRoom 
+  };
 };

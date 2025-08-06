@@ -172,145 +172,145 @@ function validateBidAmount(amount: number, currentPrice: number, startingPrice: 
 }
 
 // Process new bid with comprehensive validation
-export const processNewBid = onValueCreated(
-  {ref: 'auctions/{auctionId}/bids/{bidId}', region: 'asia-southeast1'},
-  async event => {
-    const bid = event.data.val();
-    const {auctionId, bidId} = event.params;
+// export const processNewBid = onValueCreated(
+//   {ref: 'auctions/{auctionId}/bids/{bidId}', region: 'asia-southeast1'},
+//   async event => {
+//     const bid = event.data.val();
+//     const {auctionId, bidId} = event.params;
 
-    logger.info(`Processing bid ${bidId} for auction ${auctionId}`, {bid});
+//     logger.info(`Processing bid ${bidId} for auction ${auctionId}`, {bid});
 
-    try {
-      // Get auction data
-      const auctionDoc = await firestore.collection('auctions').doc(auctionId).get();
-      if (!auctionDoc.exists) {
-        logger.error(`Auction ${auctionId} not found`);
-        await event.data.ref.remove();
-        return;
-      }
+//     try {
+//       // Get auction data
+//       const auctionDoc = await firestore.collection('auctions').doc(auctionId).get();
+//       if (!auctionDoc.exists) {
+//         logger.error(`Auction ${auctionId} not found`);
+//         await event.data.ref.remove();
+//         return;
+//       }
 
-      const auctionData = auctionDoc.data();
-      if (!auctionData) {
-        logger.error(`Auction data missing for ${auctionId}`);
-        await event.data.ref.remove();
-        return;
-      }
+//       const auctionData = auctionDoc.data();
+//       if (!auctionData) {
+//         logger.error(`Auction data missing for ${auctionId}`);
+//         await event.data.ref.remove();
+//         return;
+//       }
 
-      // Check if auction is active
-      if (auctionData.status !== 'live') {
-        logger.warn(`Auction ${auctionId} is not live`);
-        await event.data.ref.remove();
-        return;
-      }
+//       // Check if auction is active
+//       if (auctionData.status !== 'live') {
+//         logger.warn(`Auction ${auctionId} is not live`);
+//         await event.data.ref.remove();
+//         return;
+//       }
 
-      // Check if auction hasn't ended
-      const now = Date.now();
-      const endTime = auctionData.endTime?.toMillis() || 0;
-      if (now > endTime - BID_VALIDATION.timeoutBuffer) {
-        logger.warn(`Auction ${auctionId} has ended or is ending`);
-        await event.data.ref.remove();
-        return;
-      }
+//       // Check if auction hasn't ended
+//       const now = Date.now();
+//       const endTime = auctionData.endTime?.toMillis() || 0;
+//       if (now > endTime - BID_VALIDATION.timeoutBuffer) {
+//         logger.warn(`Auction ${auctionId} has ended or is ending`);
+//         await event.data.ref.remove();
+//         return;
+//       }
 
-      // Validate bid amount
-      const validation = validateBidAmount(bid.amount, auctionData.currentPrice, auctionData.startingPrice);
-      if (!validation.valid) {
-        logger.warn(`Invalid bid amount: ${validation.reason}`);
-        await event.data.ref.remove();
-        return;
-      }
+//       // Validate bid amount
+//       const validation = validateBidAmount(bid.amount, auctionData.currentPrice, auctionData.startingPrice);
+//       if (!validation.valid) {
+//         logger.warn(`Invalid bid amount: ${validation.reason}`);
+//         await event.data.ref.remove();
+//         return;
+//       }
 
-      // Check rate limiting
-      const rateLimit = await checkRateLimit(bid.userId);
-      if (!rateLimit.allowed) {
-        logger.warn(`Rate limit exceeded for user ${bid.userId}`);
-        await event.data.ref.remove();
-        return;
-      }
+//       // Check rate limiting
+//       const rateLimit = await checkRateLimit(bid.userId);
+//       if (!rateLimit.allowed) {
+//         logger.warn(`Rate limit exceeded for user ${bid.userId}`);
+//         await event.data.ref.remove();
+//         return;
+//       }
 
-      // Check fraud detection
-      const fraudCheck = await checkForFraud(bid.userId, bid.amount, auctionId);
-      if (!fraudCheck.allowed) {
-        logger.warn(`Fraud check failed for user ${bid.userId}: ${fraudCheck.reason}`);
-        await event.data.ref.remove();
-        return;
-      }
+//       // Check fraud detection
+//       const fraudCheck = await checkForFraud(bid.userId, bid.amount, auctionId);
+//       if (!fraudCheck.allowed) {
+//         logger.warn(`Fraud check failed for user ${bid.userId}: ${fraudCheck.reason}`);
+//         await event.data.ref.remove();
+//         return;
+//       }
 
-      // Update auction with new bid
-      const batch = firestore.batch();
+//       // Update auction with new bid
+//       const batch = firestore.batch();
       
-      // Update auction document
-      batch.update(auctionDoc.ref, {
-        currentPrice: bid.amount,
-        lastBidderId: bid.userId,
-        lastBidTime: FieldValue.serverTimestamp(),
-        bidCount: FieldValue.increment(1),
-        updatedAt: FieldValue.serverTimestamp()
-      });
+//       // Update auction document
+//       batch.update(auctionDoc.ref, {
+//         currentPrice: bid.amount,
+//         lastBidderId: bid.userId,
+//         lastBidTime: FieldValue.serverTimestamp(),
+//         bidCount: FieldValue.increment(1),
+//         updatedAt: FieldValue.serverTimestamp()
+//       });
 
-      // Add to bid history
-      const bidHistoryRef = firestore.collection('auctions').doc(auctionId).collection('bidHistory').doc(bidId);
-      batch.set(bidHistoryRef, {
-        ...bid,
-        status: 'confirmed',
-        processedAt: FieldValue.serverTimestamp()
-      });
+//       // Add to bid history
+//       const bidHistoryRef = firestore.collection('auctions').doc(auctionId).collection('bidHistory').doc(bidId);
+//       batch.set(bidHistoryRef, {
+//         ...bid,
+//         status: 'confirmed',
+//         processedAt: FieldValue.serverTimestamp()
+//       });
 
-      // Update user statistics
-      const userProfileRef = firestore.collection('userProfiles').doc(bid.userId);
-      batch.update(userProfileRef, {
-        totalBids: FieldValue.increment(1),
-        lastBidAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp()
-      });
+//       // Update user statistics
+//       const userProfileRef = firestore.collection('userProfiles').doc(bid.userId);
+//       batch.update(userProfileRef, {
+//         totalBids: FieldValue.increment(1),
+//         lastBidAt: FieldValue.serverTimestamp(),
+//         updatedAt: FieldValue.serverTimestamp()
+//       });
 
-      await batch.commit();
+//       await batch.commit();
 
-      // Move bid from pending to confirmed in Realtime Database
-      if (event.data.ref.parent) {
-        await event.data.ref.parent.child(bidId).update({
-          status: 'confirmed',
-          confirmedAt: now
-        });
-      }
+//       // Move bid from pending to confirmed in Realtime Database
+//       if (event.data.ref.parent) {
+//         await event.data.ref.parent.child(bidId).update({
+//           status: 'confirmed',
+//           confirmedAt: now
+//         });
+//       }
 
-      // Update Realtime Database current price for real-time updates
-      await db.ref(`auctions/${auctionId}`).update({
-        currentPrice: bid.amount,
-        lastBidderId: bid.userId,
-        lastBidTime: now
-      });
+//       // Update Realtime Database current price for real-time updates
+//       await db.ref(`auctions/${auctionId}`).update({
+//         currentPrice: bid.amount,
+//         lastBidderId: bid.userId,
+//         lastBidTime: now
+//       });
 
-      // Check for anti-sniping
-      if (auctionData.antiSnipingEnabled) {
-        const timeRemaining = endTime - now;
-        const antiSnipingExtension = 60000; // 1 minute extension
+//       // Check for anti-sniping
+//       if (auctionData.antiSnipingEnabled) {
+//         const timeRemaining = endTime - now;
+//         const antiSnipingExtension = 60000; // 1 minute extension
         
-        if (timeRemaining < antiSnipingExtension) {
-          const newEndTime = new Date(now + antiSnipingExtension);
-          await auctionDoc.ref.update({
-            endTime: admin.firestore.Timestamp.fromDate(newEndTime),
-            extendedByAntiSniping: true,
-            extensionCount: (auctionData.extensionCount || 0) + 1
-          });
+//         if (timeRemaining < antiSnipingExtension) {
+//           const newEndTime = new Date(now + antiSnipingExtension);
+//           await auctionDoc.ref.update({
+//             endTime: admin.firestore.Timestamp.fromDate(newEndTime),
+//             extendedByAntiSniping: true,
+//             extensionCount: (auctionData.extensionCount || 0) + 1
+//           });
           
-          logger.info(`Auction ${auctionId} extended by anti-sniping rule`);
-        }
-      }
+//           logger.info(`Auction ${auctionId} extended by anti-sniping rule`);
+//         }
+//       }
 
-      logger.info(`Successfully processed bid ${bidId} for auction ${auctionId}`);
+//       logger.info(`Successfully processed bid ${bidId} for auction ${auctionId}`);
 
-    } catch (error) {
-      logger.error(`Error processing bid ${bidId}:`, error);
-      // Attempt to clean up failed bid
-      try {
-        await event.data.ref.remove();
-      } catch (cleanupError) {
-        logger.error('Error cleaning up failed bid:', cleanupError);
-      }
-    }
-  }
-);
+//     } catch (error) {
+//       logger.error(`Error processing bid ${bidId}:`, error);
+//       // Attempt to clean up failed bid
+//       try {
+//         await event.data.ref.remove();
+//       } catch (cleanupError) {
+//         logger.error('Error cleaning up failed bid:', cleanupError);
+//       }
+//     }
+//   }
+// );
 
 // Place bid callable function for client-side usage
 export const placeBid = onCall(
