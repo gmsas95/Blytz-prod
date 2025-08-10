@@ -1,34 +1,35 @@
-// This service will handle all interactions with the Alibaba Apsara streaming service.
+// This service will handle all interactions with the LiveKit streaming service.
 import { LiveStream } from '../types/models';
 
 /**
- * Simulates fetching a secure, pre-signed playback URL from the Apsara backend.
- * In a real application, this would call a Firebase Cloud Function that communicates
- * with the Apsara API to generate a time-sensitive, secure URL.
+ * Fetches the LiveKit room configuration and tokens for streaming.
+ * This service abstracts the LiveKit SDK integration for consistent streaming across the app.
  *
  * @param livestream - The livestream document from Firestore.
- * @returns A promise that resolves to a playback URL.
+ * @returns A promise that resolves to streaming configuration.
  */
-const getPlaybackUrl = async (
+const getLiveKitConfig = async (
   livestream: LiveStream,
-): Promise<string | null> => {
-  console.log(`Fetching playback URL for stream: ${livestream.id}`);
+): Promise<{
+  roomName: string;
+  token: string;
+  wsUrl: string;
+} | null> => {
+  console.log(`Fetching LiveKit config for stream: ${livestream.id}`);
 
-  // If the stream is live and has a playbackUrl stored, use it.
-  if (livestream.status === 'live' && livestream.playbackUrl) {
-    return livestream.playbackUrl;
+  if (!livestream.id) {
+    return null;
   }
 
-  // --- Placeholder Logic ---
-  // In a real app, you would trigger a cloud function here to generate a new URL.
-  // For now, we'll return a public test stream for development purposes.
-  if (livestream.status === 'live') {
-    return 'http://d23dyx6B8K.mp4'; // Public test stream
-  }
-
-  return null;
+  // In production, this would call a Firebase Cloud Function to generate a secure token
+  // For now, return mock configuration for development
+  return {
+    roomName: livestream.id,
+    token: `dev-token-${livestream.id}`,
+    wsUrl: process.env.EXPO_PUBLIC_LIVEKIT_WS_URL || 'ws://localhost:7880'
+  };
 };
 
 export const streamingService = {
-  getPlaybackUrl,
+  getLiveKitConfig,
 };

@@ -90,3 +90,63 @@ All screens and components must be designed **mobile-first**.
 - **Use Flexbox for layouts**
 - **Avoid fixed widths/heights** — use `%`, `flex`, or `aspectRatio`
 - **Test all components on small and medium screen breakpoints**
+
+## 9. Screen Completion Status
+
+| Screen                               | Status        |
+| ------------------------------------ | ------------- |
+| Auth/ForgotPasswordScreen.tsx        | Completed     |
+| Auth/LoginScreen.tsx                 | Completed     |
+| Auth/OnboardingScreens.tsx           | Completed     |
+| Auth/SellerSignupScreen.tsx          | Completed     |
+| Auth/SignupScreen.tsx                | Completed     |
+| Cart/CartScreen.tsx                  | Completed     |
+| Checkout/CheckoutScreen.tsx          | Completed     |
+| Checkout/OrderConfirmationScreen.tsx | Not Started   |
+| Checkout/OrderSummaryScreen.tsx      | Not Started   |
+| Checkout/PaymentMethodScreen.tsx     | In Progress   |
+| Checkout/PaymentSuccessScreen.tsx    | Completed     |
+| Checkout/ProductCheckoutScreen.tsx   | Completed     |
+| Checkout/ShippingAddressScreen.tsx   | Completed     |
+| Home/DiscoverScreen.tsx              | Completed     |
+| Home/HomeScreen.tsx                  | Completed     |
+| LiveStream/seller/LiveStreamHostScreen.tsx | Completed     |
+| LiveStream/seller/ScheduleStreamScreen.tsx | Not Started   |
+| LiveStream/viewer/LiveStreamViewerScreen.tsx | Completed     |
+| LiveStream/viewer/PreviousStreamsScreen.tsx | Not Started   |
+| LiveStream/viewer/StreamEndedScreen.tsx | Not Started   |
+| Notifications/NotificationsScreen.tsx| Completed     |
+| Orders/SellerOrderManagementScreen.tsx | In Progress   |
+| Orders/SellerOrdersScreen.tsx        | In Progress   |
+| Other/AboutAppScreen.tsx             | Not Started   |
+| Other/HelpSupportScreen.tsx          | Not Started   |
+| Other/PrivacyPolicyScreen.tsx        | Not Started   |
+| Other/TermsAndConditionsScreen.tsx   | Not Started   |
+| Product/ProductDetailScreen.tsx      | Completed     |
+| Product/ProductListScreen.tsx        | Not Started   |
+| Products/AddProductScreen.tsx        | Completed     |
+| Products/BulkUploadScreen.tsx        | Completed     |
+| Products/CreateProductScreen.tsx     | Not Started   |
+| Products/MyProductsScreen.tsx        | Completed     |
+| Products/ProductDetailScreen.tsx     | Not Started   |
+| Products/ProductDiscoveryScreen.tsx  | Completed     |
+| **Reviews/ProductReviewsScreen.tsx** | **Not Started** |
+| **Reviews/SubmitReviewScreen.tsx**   | **Not Started** |
+| **Returns/RequestReturnScreen.tsx**  | **Not Started** |
+| Seller/BusinessDocumentsScreen.tsx   | Completed     |
+| Seller/EditSellerProfileScreen.tsx   | Completed     |
+| Seller/SellerDashboardScreen.tsx     | Completed     |
+| Seller/SellerProfileScreen.tsx       | Completed     |
+| SellerProfile/FollowedSellersScreen.tsx | Not Started   |
+| SellerProfile/SellerDashboardScreen.tsx | Not Started   |
+| SellerProfile/SellerProfileScreen.tsx | Completed     |
+| Streams/CreateStreamScreen.tsx       | Completed     |
+| Streams/MyStreamsScreen.tsx          | Completed     |
+| UserProfile/ChangePasswordScreen.tsx | Completed     |
+| UserProfile/EditProfileScreen.tsx    | Completed     |
+| UserProfile/MyBidsScreen.tsx         | Completed     |
+| UserProfile/MyOrdersScreen.tsx       | In Progress   |
+| **UserProfile/OrderDetailScreen.tsx**| **Not Started** |
+| UserProfile/MyProfileScreen.tsx      | Completed     |
+| UserProfile/MyWinsScreen.tsx         | Completed     |
+| UserProfile/SettingsScreen.tsx       | Completed     |

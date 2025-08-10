@@ -20,7 +20,7 @@ import {useAuth} from '../../context/AuthContext';
 import {useAuction} from '../../context/AuctionContext';
 import {CURRENCY_SYMBOLS} from '../../config/constants';
 import {getShippingRates} from '../../services/logistics/shipping';
-import {FiuuPaymentService} from '../../services/fiuuPayment';
+import {FiuuPaymentDetails, useFiuu} from '../../hooks/useFiuu';
 import type {ShippingAddress} from '../../types/auth';
 import {User} from '../../types/models/user';
 
@@ -162,6 +162,8 @@ export default function CheckoutScreen() {
     navigation.navigate('ShippingAddress', {returnToCheckout: true});
   };
 
+  const { makePayment, paymentResult, error, isLoading: isFiuuLoading } = useFiuu();
+
   const handlePlaceOrder = async () => {
     if (!selectedAddress) {
       Alert.alert('Error', 'Please select a shipping address');
@@ -173,47 +175,19 @@ export default function CheckoutScreen() {
       return;
     }
 
-    setIsProcessing(true);
+    const totalAmount = total.toString();
+    const orderId = `BLYTZ-${Date.now()}`;
 
-    try {
-      // Generate unique order ID
-      const orderId = FiuuPaymentService.generateOrderId();
-      
-      // Calculate total amount
-      const totalAmount = total;
-      
-      // Prepare payment request
-      const paymentRequest = {
-        amount: totalAmount,
-        orderId: orderId,
-        description: `Purchase of ${auction?.title}`,
-        customerEmail: user?.email || '',
-        customerName: user?.displayName || user?.email?.split('@')[0] || '',
-        customerPhone: selectedAddress.phoneNumber || '',
-        returnUrl: 'https://blytz.app/payment/success',
-        callbackUrl: 'https://blytz.app/payment/callback',
-      };
+    const paymentDetails: FiuuPaymentDetails = {
+      amount: totalAmount,
+      orderId: orderId,
+      username: user?.displayName || user?.email || 'Blytz User',
+      email: user?.email || '',
+      mobile: selectedAddress.phoneNumber || '',
+      description: `Purchase of ${auction?.title}`,
+    };
 
-      // const orderIdFirestore = await createOrder(orderData);
-
-      // Initiate Fiuu payment
-      const paymentResponse = await FiuuPaymentService.createPayment(paymentRequest);
-
-      if (paymentResponse.status === '00' && paymentResponse.redirectUrl) {
-        // Redirect to Fiuu payment page
-        await Linking.openURL(paymentResponse.redirectUrl);
-      } else {
-        // Handle payment initiation error
-        Alert.alert('Payment Error', paymentResponse.error || 'Failed to initiate payment', [
-          {text: 'OK', style: 'default'},
-        ]);
-      }
-    } catch (error) {
-      console.error('Error processing payment:', error);
-      Alert.alert('Error', 'Failed to process payment. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
+    await makePayment(paymentDetails);
   };
 
   if (isLoading) {

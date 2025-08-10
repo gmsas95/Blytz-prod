@@ -27,4 +27,5 @@ export const env: Extra = {
   fiuuMerchantKey: process.env.EXPO_PUBLIC_FIUU_MERCHANT_KEY || '',
   fiuuVerifyKey: process.env.EXPO_PUBLIC_FIUU_VERIFY_KEY || '',
   logisticsApiKey: process.env.EXPO_PUBLIC_LOGISTICS_API_KEY || '',
+  livekitWsUrl: process.env.EXPO_PUBLIC_LIVEKIT_WS_URL || 'ws://localhost:7880',
 };

@@ -17,7 +17,7 @@ jest.mock('@react-native-firebase/firestore', () => ({
 // Simple test to verify the hook renders
 describe('useLiveStream', () => {
   it('should render without crashing', () => {
-    const { result } = renderHook(() => useLiveStream('test-room', 'test-participant'));
+    const { result } = renderHook(() => useLiveStream());
     
     expect(result.current).toBeDefined();
     expect(result.current.isConnected).toBe(false);

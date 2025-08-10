@@ -8,7 +8,7 @@ export interface LiveStream {
   endTime?: FirebaseFirestoreTypes.Timestamp;
   status: 'scheduled' | 'live' | 'ended';
   productIds: string[];
-  playbackUrl?: string; // URL provided by Apsara
+  playbackUrl?: string; // URL provided by LiveKit
 }
 
 export const liveStreamConverter = {
