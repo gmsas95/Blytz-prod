@@ -1,7 +1,7 @@
 // src/hooks/useLiveStream.ts
 import { useState, useEffect, useCallback } from 'react';
 import { Room, RoomEvent, Participant } from 'livekit-client';
-import { getLiveKitToken, connectToRoom } from '../services/livekit';
+import { getLiveKitToken, connectToRoom as connectToLiveKitRoom } from '../services/livekit';
 
 export const useLiveStream = () => {
   const [room, setRoom] = useState<Room | null>(null);
@@ -10,8 +10,19 @@ export const useLiveStream = () => {
 
   const connectToRoom = useCallback(async (roomName: string, participantName: string): Promise<Room> => {
     try {
+      // Prevent duplicate connections
+      if (room && room.name === roomName) {
+        console.log('Already connected to room:', roomName);
+        return room;
+      }
+
+      // Disconnect from existing room if any
+      if (room) {
+        await room.disconnect();
+      }
+
       const token = await getLiveKitToken(roomName, participantName);
-      const roomInstance: Room = await connectToRoom(roomName, token);
+      const roomInstance: Room = await connectToLiveKitRoom(roomName, token);
 
       setRoom(roomInstance);
       setIsConnected(true);
@@ -29,6 +40,7 @@ export const useLiveStream = () => {
       roomInstance.on(RoomEvent.Disconnected, () => {
         setIsConnected(false);
         setParticipants([]);
+        setRoom(null);
       });
 
       updateParticipants();
@@ -38,7 +50,7 @@ export const useLiveStream = () => {
       console.error("Error connecting to LiveKit room:", error);
       throw error;
     }
-  }, []);
+  }, [room]);
 
   const disconnectFromRoom = useCallback(async () => {
     if (room) {

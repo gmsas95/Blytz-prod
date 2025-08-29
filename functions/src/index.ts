@@ -19,6 +19,7 @@ export * from './seller';
 // Import webhook functions
 export * from './webhooks';
 export * from './livestream';
+export * from './admin';
 
 // Firestore references
 const firestore = admin.firestore();

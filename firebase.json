@@ -9,5 +9,8 @@
   "functions": {
     "source": "functions",
     "runtime": "nodejs20"
+  },
+  "storage": {
+    "rules": "scripts/storage.rules"
   }
 }

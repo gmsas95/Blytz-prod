@@ -1,11 +1,8 @@
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from 'firebase-admin';
-import * as functions from 'firebase-functions';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const firestore = admin.firestore();
-
-
-
 
 interface Stream {
   status: string;
@@ -29,9 +26,9 @@ interface DocumentUpload {
 /**
  * Creates a new seller profile when a user registers as a seller
  */
-export const createSellerProfile = functions.https.onCall(async (request: functions.https.CallableRequest) => {
+export const createSellerProfile = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   const userId = request.auth.uid;
@@ -48,7 +45,7 @@ export const createSellerProfile = functions.https.onCall(async (request: functi
 
   // Validate required fields
   if (!businessName || !taxId || !bankAccount || !businessAddress) {
-    throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
+    throw new HttpsError('invalid-argument', 'Missing required fields');
   }
 
   try {
@@ -85,22 +82,21 @@ export const createSellerProfile = functions.https.onCall(async (request: functi
     return { success: true, sellerId: userId };
   } catch (error) {
     console.error('Error creating seller profile:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to create seller profile');
+    throw new HttpsError('internal', 'Failed to create seller profile');
   }
 });
 
 /**
  * Updates seller verification status
  */
-export const updateSellerVerification = functions.https.onCall(async (request: functions.https.CallableRequest) => {
+export const updateSellerVerification = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   const { sellerId, isVerified, verificationNotes } = request.data;
   
-  // Only admins can verify sellers (implement admin check)
-  // For now, we'll allow self-verification during development
+  // TODO: Add admin check here
 
   try {
     await firestore.collection('sellers').doc(sellerId).update({
@@ -113,16 +109,16 @@ export const updateSellerVerification = functions.https.onCall(async (request: f
     return { success: true };
   } catch (error) {
     console.error('Error updating seller verification:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to update verification');
+    throw new HttpsError('internal', 'Failed to update verification');
   }
 });
 
 /**
  * Gets seller dashboard data
  */
-export const getSellerDashboard = functions.https.onCall(async (request: functions.https.CallableRequest) => {
+export const getSellerDashboard = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   const userId = request.auth.uid;
@@ -131,7 +127,7 @@ export const getSellerDashboard = functions.https.onCall(async (request: functio
     // Get seller profile
     const sellerDoc = await firestore.collection('sellers').doc(userId).get();
     if (!sellerDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Seller profile not found');
+      throw new HttpsError('not-found', 'Seller profile not found');
     }
 
     const sellerData = sellerDoc.data();
@@ -192,16 +188,16 @@ export const getSellerDashboard = functions.https.onCall(async (request: functio
     };
   } catch (error) {
     console.error('Error getting seller dashboard:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to get dashboard data');
+    throw new HttpsError('internal', 'Failed to get dashboard data');
   }
 });
 
 /**
  * Uploads business documents for verification
  */
-export const uploadBusinessDocuments = functions.https.onCall(async (request: functions.https.CallableRequest) => {
+export const uploadBusinessDocuments = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   const userId = request.auth.uid;
@@ -238,7 +234,7 @@ export const uploadBusinessDocuments = functions.https.onCall(async (request: fu
     return { success: true, documents: uploadedDocs };
   } catch (error) {
     console.error('Error uploading business documents:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to upload documents');
+    throw new HttpsError('internal', 'Failed to upload documents');
   }
 });
 
@@ -246,9 +242,9 @@ export const uploadBusinessDocuments = functions.https.onCall(async (request: fu
 /**
  * Updates seller profile
  */
-export const updateSellerProfile = functions.https.onCall(async (request: functions.https.CallableRequest) => {
+export const updateSellerProfile = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   const userId = request.auth.uid;
@@ -262,6 +258,87 @@ export const updateSellerProfile = functions.https.onCall(async (request: functi
     return { success: true };
   } catch (error) {
     console.error('Error updating seller profile:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to update profile');
+    throw new HttpsError('internal', 'Failed to update profile');
+  }
+});
+
+/**
+ * Toggles seller live mode status
+ */
+export const toggleSellerLiveMode = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const userId = request.auth.uid;
+  const { isLive } = request.data;
+
+  if (typeof isLive !== 'boolean') {
+    throw new HttpsError('invalid-argument', 'isLive must be a boolean value');
+  }
+
+  try {
+    // Check if user is a seller
+    const sellerDoc = await firestore.collection('sellers').doc(userId).get();
+    if (!sellerDoc.exists) {
+      throw new HttpsError('not-found', 'Seller profile not found');
+    }
+
+    const sellerData = sellerDoc.data();
+    if (!sellerData?.isVerified) {
+      throw new HttpsError('failed-precondition', 'Seller must be verified to go live');
+    }
+
+    // Update seller live mode
+    await firestore.collection('sellers').doc(userId).update({
+      isLive,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // Update custom claims if needed
+    if (isLive) {
+      await admin.auth().setCustomUserClaims(userId, { seller: true, isLive: true });
+    } else {
+      await admin.auth().setCustomUserClaims(userId, { seller: true, isLive: false });
+    }
+
+    console.info(`Seller ${userId} live mode toggled to: ${isLive}`);
+
+    return { 
+      success: true, 
+      isLive, 
+      message: isLive ? 'You are now live! Switch to seller mode on your mobile app.' : 'You are now offline. Switching to viewer mode.'
+    };
+  } catch (error) {
+    console.error('Error toggling seller live mode:', error);
+    throw new HttpsError('internal', 'Failed to toggle seller live mode');
+  }
+});
+
+/**
+ * Gets current seller live mode status
+ */
+export const getSellerLiveStatus = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const userId = request.auth.uid;
+
+  try {
+    const sellerDoc = await firestore.collection('sellers').doc(userId).get();
+    if (!sellerDoc.exists) {
+      throw new HttpsError('not-found', 'Seller profile not found');
+    }
+
+    const sellerData = sellerDoc.data();
+    return {
+      isLive: sellerData?.isLive || false,
+      isVerified: sellerData?.isVerified || false,
+      businessName: sellerData?.businessName || '',
+    };
+  } catch (error) {
+    console.error('Error getting seller live status:', error);
+    throw new HttpsError('internal', 'Failed to get seller live status');
   }
 });

@@ -4,13 +4,9 @@
   "description": "Cloud Functions for Blytz App",
   "main": "lib/index.js",
   "dependencies": {
-    "expo": "~53.0.20",
     "firebase-admin": "^12.1.0",
-    "firebase-functions": "^6.3.2",
-    "livekit-server-sdk": "^2.1.2",
-    "react": "19.0.0",
-    "react-native": "0.79.5",
-    "react-native-webrtc": "^124.0.6"
+    "firebase-functions": "^5.0.1",
+    "livekit-server-sdk": "^2.1.2"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

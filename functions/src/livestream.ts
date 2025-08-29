@@ -1,18 +1,16 @@
-
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { AccessToken } from "livekit-server-sdk";
 import { FieldValue } from "firebase-admin/firestore";
 
-// Demo LiveKit credentials for testing
-const livekitApiKey = functions.config().livekit?.api_key || 'demo-key';
-const livekitApiSecret = functions.config().livekit?.api_secret || 'demo-secret';
+// Use environment variables for LiveKit credentials in 2nd Gen functions
+const livekitApiKey = process.env.LIVEKIT_API_KEY || 'demo-key';
+const livekitApiSecret = process.env.LIVEKIT_API_SECRET || 'demo-secret';
 
-
-export const generateLiveKitToken = functions.https.onCall(async (request) => {
+export const generateLiveKitToken = onCall(async (request) => {
   // Ensure the user is authenticated
   if (!request.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "unauthenticated",
       "The function must be called while authenticated."
     );
@@ -22,7 +20,7 @@ export const generateLiveKitToken = functions.https.onCall(async (request) => {
   const participantName = request.auth.uid; // Use Firebase UID as participant name
 
   if (!roomName) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       'The function must be called with a "roomName" argument.'
     );
@@ -39,10 +37,9 @@ export const generateLiveKitToken = functions.https.onCall(async (request) => {
   };
 });
 
-
-export const createStream = functions.https.onCall(async (request) => {
+export const createStream = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "unauthenticated",
       "The function must be called while authenticated."
     );
@@ -52,7 +49,7 @@ export const createStream = functions.https.onCall(async (request) => {
   const sellerId = request.auth.uid;
 
   if (!title || !category) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       'The function must be called with "title" and "category" arguments.'
     );
@@ -62,7 +59,7 @@ export const createStream = functions.https.onCall(async (request) => {
     // Check if user is a verified seller
     const sellerDoc = await admin.firestore().collection('sellers').doc(sellerId).get();
     if (!sellerDoc.exists) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "failed-precondition",
         "User must be a verified seller to create streams."
       );
@@ -70,7 +67,7 @@ export const createStream = functions.https.onCall(async (request) => {
 
     const sellerData = sellerDoc.data();
     if (!sellerData?.isVerified) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "failed-precondition",
         "Seller must be verified to create streams."
       );
@@ -109,6 +106,86 @@ export const createStream = functions.https.onCall(async (request) => {
     };
   } catch (error) {
     console.error('Error creating stream:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to create stream');
+    throw new HttpsError('internal', 'Failed to create stream');
+  }
+});
+
+export const startStream = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "The function must be called while authenticated."
+    );
+  }
+
+  const { streamId } = request.data;
+  const sellerId = request.auth.uid;
+
+  try {
+    const streamRef = admin.firestore().collection('streams').doc(streamId);
+    const streamDoc = await streamRef.get();
+
+    if (!streamDoc.exists) {
+      throw new HttpsError("not-found", "Stream not found.");
+    }
+
+    const streamData = streamDoc.data();
+    if (streamData?.sellerId !== sellerId) {
+      throw new HttpsError(
+        "permission-denied",
+        "You are not the owner of this stream."
+      );
+    }
+
+    await streamRef.update({
+      status: 'live',
+      startedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error starting stream:', error);
+    throw new HttpsError('internal', 'Failed to start stream');
+  }
+});
+
+export const endStream = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "The function must be called while authenticated."
+    );
+  }
+
+  const { streamId } = request.data;
+  const sellerId = request.auth.uid;
+
+  try {
+    const streamRef = admin.firestore().collection('streams').doc(streamId);
+    const streamDoc = await streamRef.get();
+
+    if (!streamDoc.exists) {
+      throw new HttpsError("not-found", "Stream not found.");
+    }
+
+    const streamData = streamDoc.data();
+    if (streamData?.sellerId !== sellerId) {
+      throw new HttpsError(
+        "permission-denied",
+        "You are not the owner of this stream."
+      );
+    }
+
+    await streamRef.update({
+      status: 'ended',
+      endedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error ending stream:', error);
+    throw new HttpsError('internal', 'Failed to end stream');
   }
 });

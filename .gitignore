@@ -49,5 +49,10 @@ functions/lib/
 .vscode/
 .idea/
 google-services.json
-\n/scripts/
-\n/pre-deployment-checklist/
+
+/scripts/
+
+/pre-deployment-checklist/
+
+# Ignore scripts folder to protect service account keys
+/scripts/

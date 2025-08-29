@@ -7,13 +7,13 @@ import {logger} from 'firebase-functions';
 const db = admin.database();
 const firestore = admin.firestore();
 
-// Anti-fraud configuration
+// Anti-fraud configuration for fast-paced live auctions
 const RATE_LIMIT_CONFIG = {
-  maxBidsPerMinute: 10,
-  maxBidsPerHour: 50,
-  maxBidsPerDay: 200,
-  cooldownPeriod: 5000, // 5 seconds between bids
-  suspiciousThreshold: 100, // bids per day to trigger review
+  maxBidsPerMinute: 60,        // 1 bid per second for active bidding
+  maxBidsPerHour: 300,         // ~5 bids per minute sustained
+  maxBidsPerDay: 2000,         // Allow for multiple auction participation
+  cooldownPeriod: 500,        // 0.5 seconds between bids for rapid response
+  suspiciousThreshold: 5000,  // Increased for high-volume legitimate users
 };
 
 const BID_VALIDATION = {

@@ -1,9 +1,7 @@
 import {onCall} from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
+
 
 const db = admin.firestore();
 

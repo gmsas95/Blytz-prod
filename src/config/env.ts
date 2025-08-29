@@ -12,6 +12,7 @@ interface Extra {
   fiuuMerchantKey?: string;
   fiuuVerifyKey?: string;
   logisticsApiKey?: string;
+  livekitWsUrl?: string;
 }
 
 export const env: Extra = {

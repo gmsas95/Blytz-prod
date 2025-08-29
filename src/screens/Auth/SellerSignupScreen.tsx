@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -21,6 +21,21 @@ import { theme } from '../../config/theme';
 const SellerSignupScreen = () => {
   const navigation = useNavigation();
   const { registerAsSeller } = useAuth();
+
+  // Create refs for all input fields
+  const businessNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+  const taxIdRef = useRef<TextInput>(null);
+  const phoneNumberRef = useRef<TextInput>(null);
+  const addressLine1Ref = useRef<TextInput>(null);
+  const cityRef = useRef<TextInput>(null);
+  const stateRef = useRef<TextInput>(null);
+  const postalCodeRef = useRef<TextInput>(null);
+  const bankNameRef = useRef<TextInput>(null);
+  const accountNumberRef = useRef<TextInput>(null);
+  const accountHolderRef = useRef<TextInput>(null);
 
   const [formData, setFormData] = useState<SellerRegistrationData>({
     businessName: '',
@@ -127,9 +142,21 @@ const SellerSignupScreen = () => {
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'number-pad';
   icon?: keyof typeof Ionicons.glyphMap;
+  onSubmitEditing?: () => void;
+  inputRef?: React.RefObject<TextInput | null>;
 }
 
-const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onChangeText, secureTextEntry = false, keyboardType = 'default', icon }) => (
+const InputField: React.FC<InputFieldProps> = ({ 
+    label, 
+    placeholder, 
+    value, 
+    onChangeText, 
+    secureTextEntry = false, 
+    keyboardType = 'default', 
+    icon,
+    onSubmitEditing,
+    inputRef
+  }) => (
     <View style={styles.inputContainer}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputWrapper}>
@@ -150,14 +177,18 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           returnKeyType="next"
-          blurOnSubmit={false}
+          onSubmitEditing={onSubmitEditing}
+          ref={inputRef}
         />
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScrollView 
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="always"
@@ -182,6 +213,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="Enter your business name"
               value={formData.businessName}
               onChangeText={(text) => handleInputChange('businessName', text)}
+              onSubmitEditing={() => emailRef.current?.focus()}
+              inputRef={businessNameRef}
               icon="business-outline"
             />
             
@@ -190,6 +223,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="you@business.com"
               value={formData.email}
               onChangeText={(text) => handleInputChange('email', text)}
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              inputRef={emailRef}
               keyboardType="email-address"
               icon="mail-outline"
             />
@@ -199,6 +234,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="••••••••"
               value={formData.password}
               onChangeText={(text) => handleInputChange('password', text)}
+              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+              inputRef={passwordRef}
               secureTextEntry
               icon="lock-closed-outline"
             />
@@ -208,6 +245,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="••••••••"
               value={formData.confirmPassword || ''}
               onChangeText={(text) => handleInputChange('confirmPassword', text)}
+              onSubmitEditing={() => taxIdRef.current?.focus()}
+              inputRef={confirmPasswordRef}
               secureTextEntry
               icon="lock-closed-outline"
             />
@@ -222,6 +261,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="12345678-X"
               value={formData.taxId}
               onChangeText={(text) => handleInputChange('taxId', text)}
+              onSubmitEditing={() => phoneNumberRef.current?.focus()}
+              inputRef={taxIdRef}
               icon="card-outline"
             />
             
@@ -230,6 +271,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="+60 123 456 7890"
               value={formData.phoneNumber}
               onChangeText={(text) => handleInputChange('phoneNumber', text)}
+              onSubmitEditing={() => addressLine1Ref.current?.focus()}
+              inputRef={phoneNumberRef}
               keyboardType="phone-pad"
               icon="call-outline"
             />
@@ -239,6 +282,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="Street address"
               value={formData.businessAddress.addressLine1}
               onChangeText={(text) => handleNestedChange('businessAddress', 'addressLine1', text)}
+              onSubmitEditing={() => cityRef.current?.focus()}
+              inputRef={addressLine1Ref}
               icon="location-outline"
             />
             
@@ -249,6 +294,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
                   placeholder="City"
                   value={formData.businessAddress.city}
                   onChangeText={(text) => handleNestedChange('businessAddress', 'city', text)}
+                  onSubmitEditing={() => stateRef.current?.focus()}
+                  inputRef={cityRef}
                   icon="business-outline"
                 />
               </View>
@@ -258,10 +305,23 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
                   placeholder="State"
                   value={formData.businessAddress.state}
                   onChangeText={(text) => handleNestedChange('businessAddress', 'state', text)}
+                  onSubmitEditing={() => postalCodeRef.current?.focus()}
+                  inputRef={stateRef}
                   icon="business-outline"
                 />
               </View>
             </View>
+            
+            <InputField
+              label="Postal Code"
+              placeholder="12345"
+              value={formData.businessAddress.postalCode}
+              onChangeText={(text) => handleNestedChange('businessAddress', 'postalCode', text)}
+              onSubmitEditing={() => bankNameRef.current?.focus()}
+              inputRef={postalCodeRef}
+              keyboardType="number-pad"
+              icon="location-outline"
+            />
           </View>
 
           {/* Banking Details Section */}
@@ -273,6 +333,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="Maybank, CIMB, RHB, etc."
               value={formData.bankAccount.bankName}
               onChangeText={(text) => handleNestedChange('bankAccount', 'bankName', text)}
+              onSubmitEditing={() => accountNumberRef.current?.focus()}
+              inputRef={bankNameRef}
               icon="business-outline"
             />
             
@@ -281,6 +343,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="1234567890"
               value={formData.bankAccount.accountNumber}
               onChangeText={(text) => handleNestedChange('bankAccount', 'accountNumber', text)}
+              onSubmitEditing={() => accountHolderRef.current?.focus()}
+              inputRef={accountNumberRef}
               keyboardType="number-pad"
               icon="keypad-outline"
             />
@@ -290,6 +354,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
               placeholder="Name as per bank records"
               value={formData.bankAccount.accountHolder}
               onChangeText={(text) => handleNestedChange('bankAccount', 'accountHolder', text)}
+              onSubmitEditing={() => handleRegister()}
+              inputRef={accountHolderRef}
               icon="person-outline"
             />
           </View>
@@ -315,7 +381,7 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, value, onCh
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -432,6 +498,21 @@ const styles = StyleSheet.create({
     ...theme.typography.body1,
     color: theme.colors.primary,
   } as TextStyle,
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  sectionDescription: {
+    ...theme.typography.body2,
+    color: theme.colors.secondary,
+    marginBottom: theme.spacing.md,
+    lineHeight: 20,
+  },
 });
 
 export default SellerSignupScreen;

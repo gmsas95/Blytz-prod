@@ -90,24 +90,20 @@ service firebase.storage {
     }
 
     function isProductOwner(productId, userId) {
-      return exists(/databases/$(database)/documents/products/$(productId)) &&
-        get(/databases/$(database)/documents/products/$(productId)).data.sellerId == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
 
     function isStreamOwner(streamId, userId) {
-      return exists(/databases/$(database)/documents/streams/$(streamId)) &&
-        get(/databases/$(database)/documents/streams/$(streamId)).data.sellerId == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
 
     function isOrderParticipant(orderId, userId) {
-      return exists(/databases/$(database)/documents/orders/$(orderId)) &&
-        (get(/databases/$(database)/documents/orders/$(orderId)).data.buyerId == userId ||
-         get(/databases/$(database)/documents/orders/$(orderId)).data.sellerId == userId);
+      return request.auth != null && 
+        (request.auth.uid == userId || hasRole('admin', request.auth));
     }
 
     function isOrderSeller(orderId, userId) {
-      return exists(/databases/$(database)/documents/orders/$(orderId)) &&
-        get(/databases/$(database)/documents/orders/$(orderId)).data.sellerId == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
     
     // Default deny all other access

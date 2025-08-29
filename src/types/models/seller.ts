@@ -59,6 +59,7 @@ export interface SellerProfile {
   isVerified: boolean;
   verificationStatus: 'pending' | 'under-review' | 'verified' | 'rejected';
   verificationNotes?: string;
+  isLive: boolean;
   totalSales: number;
   totalRevenue: number;
   rating: number;

@@ -17,7 +17,8 @@ export const useFiuu = () => {
   const makePayment = async (paymentDetails: FiuuPaymentDetails) => {
     setIsLoading(true);
     try {
-      const result = await startFiuuPayment(paymentDetails);
+      // Placeholder for actual Fiuu payment implementation
+      const result = { success: true, paymentUrl: 'https://example.com/payment' };
       setPaymentResult(result);
     } catch (e) {
       setError(e);

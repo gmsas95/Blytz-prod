@@ -41,6 +41,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isSeller: boolean;
+  isInSellerMode: boolean;
   sellerProfile: SellerProfile | null;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   registerWithEmail: (
@@ -67,6 +68,8 @@ interface AuthContextType {
   updateShippingAddress: (address: ShippingAddress) => Promise<void>;
   deleteShippingAddress: (addressId: string) => Promise<void>;
   refreshUser: () => Promise<void>;
+  toggleSellerMode: (isLive: boolean) => Promise<void>;
+  checkSellerMode: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSeller, setIsSeller] = useState(false);
+  const [isInSellerMode, setIsInSellerMode] = useState(false);
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
 
   const refreshSellerProfile = useCallback(async (userId?: string) => {
@@ -92,7 +96,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const sellerDocRef = doc(firestore, 'sellers', userId);
         const sellerDoc = await getDoc(sellerDocRef);
         if (sellerDoc.exists()) {
-          setSellerProfile(sellerDoc.data() as SellerProfile);
+          const profile = sellerDoc.data() as SellerProfile;
+          setSellerProfile(profile);
+          // Set seller mode based on isLive flag
+          setIsInSellerMode(profile.isLive === true);
         }
       }
     } catch (error) {
@@ -249,6 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             businessDescription: sellerData.businessDescription,
             isVerified: false,
             verificationStatus: 'pending',
+            isLive: false,
             totalSales: 0,
             totalRevenue: 0,
             rating: 0,
@@ -465,12 +473,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.uid, refreshUser, user?.shippingAddresses]);
 
+  const toggleSellerMode = useCallback(async (isLive: boolean) => {
+    if (!user?.uid || !isSeller) return;
+    
+    setLoading(true);
+    try {
+      const sellerDocRef = doc(firestore, 'sellers', user.uid);
+      await updateDoc(sellerDocRef, { isLive });
+      setIsInSellerMode(isLive);
+      setSellerProfile(prev => prev ? { ...prev, isLive } : null);
+    } catch (error) {
+      console.error('Error toggling seller mode:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid, isSeller]);
+
+  const checkSellerMode = useCallback(async () => {
+    if (!user?.uid || !isSeller) return;
+    
+    try {
+      const sellerDocRef = doc(firestore, 'sellers', user.uid);
+      const sellerDoc = await getDoc(sellerDocRef);
+      if (sellerDoc.exists()) {
+        const profile = sellerDoc.data() as SellerProfile;
+        setIsInSellerMode(profile.isLive === true);
+        setSellerProfile(profile);
+      }
+    } catch (error) {
+      console.error('Error checking seller mode:', error);
+    }
+  }, [user?.uid, isSeller]);
+
+  useEffect(() => {
+    // Check seller mode when user logs in or when seller status changes
+    if (user?.uid && isSeller) {
+      checkSellerMode();
+    }
+  }, [user?.uid, isSeller, checkSellerMode]);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
         isSeller,
+        isInSellerMode,
         sellerProfile,
         loginWithEmail,
         registerWithEmail,
@@ -486,6 +535,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         updateShippingAddress,
         deleteShippingAddress,
         refreshUser,
+        toggleSellerMode,
+        checkSellerMode,
       }}>
       {children}
     </AuthContext.Provider>

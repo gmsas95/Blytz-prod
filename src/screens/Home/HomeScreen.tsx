@@ -72,15 +72,6 @@ export default function HomeScreen() {
   useEffect(() => {
     const unsubscribeLive = streamsService.subscribeToLiveStreams((streams) => {
       setLiveStreams(streams);
-      if (selectedCategory === 'all') {
-        setFilteredStreams(streams);
-      } else {
-        setFilteredStreams(
-          streams.filter(stream =>
-            stream.category.toLowerCase() === selectedCategory.toLowerCase()
-          )
-        );
-      }
     });
 
     const unsubscribeFeatured = streamsService.subscribeToFeaturedStreams((featured) => {
@@ -91,7 +82,7 @@ export default function HomeScreen() {
       unsubscribeLive();
       unsubscribeFeatured();
     };
-  }, [selectedCategory]);
+  }, []); // Empty dependency array - only set up listeners once
 
   useEffect(() => {
     loadData();

@@ -8,12 +8,12 @@ import {SellerNavigator} from './SellerNavigator';
 const RootStack = createNativeStackNavigator();
 
 export const RootNavigator = () => {
-  const {user, isSeller} = useAuth();
+  const {user, isSeller, isInSellerMode} = useAuth();
 
   return (
     <RootStack.Navigator screenOptions={{headerShown: false}}>
       {user ? (
-        isSeller ? (
+        isSeller && isInSellerMode ? (
           <RootStack.Screen name="Seller" component={SellerNavigator} />
         ) : (
           <RootStack.Screen name="Main" component={MainNavigator} />

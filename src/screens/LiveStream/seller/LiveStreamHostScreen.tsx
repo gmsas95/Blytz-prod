@@ -34,11 +34,12 @@ const LiveStreamHostScreen: React.FC<LiveStreamHostScreenProps> = ({ route }) =>
     requestPermissions();
     if (route?.params?.streamId) {
       setRoomName(route.params.streamId);
-    } else {
-      const newRoomName = `stream_${user?.uid}_${Date.now()}`;
+    } else if (user?.uid && !roomName) {
+      // Only generate once when user is available and roomName is empty
+      const newRoomName = `stream_${user.uid}`;
       setRoomName(newRoomName);
     }
-  }, []);
+  }, [user?.uid, route?.params?.streamId, roomName]);
 
   const requestPermissions = async () => {
     try {
