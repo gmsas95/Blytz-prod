@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, FlatList, ScrollView, Animated, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, FlatList, Animated, PanResponder, Alert } from 'react-native';
 import { useLiveStream } from '../../../hooks/useLiveStream';
 import { theme } from '../../../config/theme';
 import ScreenWrapper from '../../../components/shared/ScreenWrapper';
 import LiveStreamItem from '../../../components/LiveStream/viewer/LiveStreamItem';
-import LiveChatComponent from '../../../components/LiveStream/viewer/LiveChatComponent';
-import BiddingComponent from '../../../components/LiveStream/viewer/BiddingComponent';
-import { Participant } from 'livekit-client';
 import { useAuth } from '../../../context/AuthContext';
 import { useRoute } from '@react-navigation/native';
+import { validateBidAmount, calculateNextBidAmount } from '../../../utils/bidding';
+import { getDatabase, ref, push, serverTimestamp, onValue } from 'firebase/database';
 
 interface ChatMessage {
   id: string;
@@ -66,16 +65,14 @@ const SlidingButton: React.FC<SlidingButtonProps> = ({ productType, onAction, di
             setHasCompleted(true);
             onAction();
             
-            // Reset after action
-            setTimeout(() => {
-              Animated.spring(translateX, {
-                toValue: 0,
-                useNativeDriver: true,
-                speed: 20,
-              }).start(() => {
-                setHasCompleted(false);
-              });
-            }, 1000);
+            // Reset after action - immediate reset for rapid bidding
+            Animated.spring(translateX, {
+              toValue: 0,
+              useNativeDriver: true,
+              speed: 20,
+            }).start(() => {
+              setHasCompleted(false);
+            });
           });
         } else {
           // Reset position
@@ -131,9 +128,10 @@ const LiveStreamViewerScreen = () => {
     price: 45.00,
     type: 'auction',
     startingPrice: 30.00,
-    currentBid: 45.00,
+    currentBid: 30.00,
     timeRemaining: '2:34 remaining',
   });
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const { user } = useAuth();
   const route = useRoute();
   const chatRef = useRef<FlatList>(null);
@@ -156,8 +154,25 @@ const LiveStreamViewerScreen = () => {
 
     connectToStream();
 
+    // Listen for real-time bid updates
+    const database = getDatabase();
+    const bidsRef = ref(database, `auctions/${streamId}/bids`);
+    
+    const unsubscribeBids = onValue(bidsRef, (snapshot) => {
+      const bids = snapshot.val();
+      if (bids) {
+        const bidValues = Object.values(bids) as any[];
+        const highestBid = Math.max(...bidValues.map(bid => bid.amount));
+        setProduct(prev => ({
+          ...prev,
+          currentBid: highestBid,
+        }));
+      }
+    });
+
     return () => {
       disconnectFromRoom();
+      unsubscribeBids();
     };
   }, [streamId, user?.uid]);
 
@@ -183,32 +198,102 @@ const LiveStreamViewerScreen = () => {
     }
   };
 
-  const handlePlaceBid = (amount: number) => {
+  const handlePlaceBid = async (amount: number) => {
+    if (!user) return;
+    
     console.log('Placing bid:', amount);
-    // TODO: Implement bid logic
-  };
-
-  const handleBuyNow = () => {
-    console.log('Buy now clicked');
-    // TODO: Implement buy now logic
-  };
-
-  const handleSetCustomBid = () => {
-    const bidAmount = parseFloat(customBid);
-    if (!isNaN(bidAmount) && bidAmount > 0) {
-      handlePlaceBid(bidAmount);
-      setCustomBid('');
+    
+    // Clear any previous error
+    setErrorMessage('');
+    
+    // Validate bid amount is greater than current
+    const currentHighestBid = product.currentBid || product.startingPrice || 0;
+    const validation = validateBidAmount(amount, currentHighestBid, 5);
+    
+    if (!validation.isValid) {
+      setErrorMessage(validation.errorMessage || 'Invalid bid');
+      Alert.alert('Invalid Bid', validation.errorMessage || 'Invalid bid amount');
+      return;
     }
+    
+    try {
+      const database = getDatabase();
+      const bidsRef = ref(database, `auctions/${streamId}/bids`);
+      
+      await push(bidsRef, {
+        amount: amount,
+        userId: user.uid,
+        userName: user.displayName || user.email,
+        timestamp: serverTimestamp()
+      });
+      
+      // Add bid message to chat
+      const bidMessage: ChatMessage = {
+        id: Date.now().toString(),
+        user: user?.displayName || 'Bidder',
+        message: `$${amount}`,
+        timestamp: new Date(),
+      };
+      setChatMessages(prev => [...prev, bidMessage]);
+    } catch (error) {
+      console.error('Error placing bid:', error);
+      setErrorMessage('Failed to place bid. Please try again.');
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!user) return;
+    
+    console.log('Buy now clicked:', product.price);
+    
+    try {
+      const database = getDatabase();
+      const purchasesRef = ref(database, `auctions/${streamId}/purchases`);
+      
+      await push(purchasesRef, {
+        amount: product.price,
+        userId: user.uid,
+        userName: user.displayName || user.email,
+        type: 'buy_now',
+        timestamp: serverTimestamp()
+      });
+      
+      // Add purchase message to chat
+      const purchaseMessage: ChatMessage = {
+        id: Date.now().toString(),
+        user: user?.displayName || 'Buyer',
+        message: `Purchased for $${product.price}`,
+        timestamp: new Date(),
+      };
+      setChatMessages(prev => [...prev, purchaseMessage]);
+    } catch (error) {
+      console.error('Error processing purchase:', error);
+      setErrorMessage('Failed to process purchase. Please try again.');
+    }
+  };
+
+  const handleSetCustomBid = async () => {
+    const bidAmount = parseFloat(customBid);
+    const currentHighestBid = product.currentBid || product.startingPrice || 0;
+    const validation = validateBidAmount(bidAmount, currentHighestBid, 5);
+    
+    if (!validation.isValid) {
+      setErrorMessage(validation.errorMessage || 'Invalid bid');
+      Alert.alert('Invalid Bid', validation.errorMessage || 'Invalid bid amount');
+      return;
+    }
+    
+    await handlePlaceBid(bidAmount);
+    setCustomBid('');
   };
 
   const handleProductAction = () => {
     if (product.type === 'auction') {
-      const bidAmount = parseFloat(customBid);
-      if (!isNaN(bidAmount) && bidAmount > 0) {
-        handlePlaceBid(bidAmount);
-      } else {
-        handlePlaceBid(product.currentBid || product.startingPrice || 0);
-      }
+      const currentHighestBid = product.currentBid || product.startingPrice || 0;
+      const nextBid = calculateNextBidAmount(currentHighestBid, 5);
+      
+      // Always bid the next increment when using slider
+      handlePlaceBid(nextBid);
     } else {
       handleBuyNow();
     }
@@ -321,6 +406,13 @@ const LiveStreamViewerScreen = () => {
               </TouchableOpacity>
             </View>
 
+            {/* Error Message */}
+            {errorMessage ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+
             {/* Action Area - Now only contains bidding controls */}
             <View style={styles.actionArea}>
               {/* Bid Control Area - Split Layout */}
@@ -329,10 +421,13 @@ const LiveStreamViewerScreen = () => {
                 <View style={styles.bidInputContainer}>
                   <TextInput
                     style={styles.bidInput}
-                    placeholder="Custom bid"
+                    placeholder={`Min $${calculateNextBidAmount(product.currentBid || product.startingPrice || 0, 5)}`}
                     placeholderTextColor={theme.colors.secondary}
                     value={customBid}
-                    onChangeText={setCustomBid}
+                    onChangeText={(text) => {
+                      setCustomBid(text);
+                      setErrorMessage(''); // Clear error when user starts typing
+                    }}
                     keyboardType="numeric"
                     returnKeyType="done"
                   />
@@ -591,6 +686,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  
+  // Error message styles
+  errorContainer: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(244, 67, 54, 0.2)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 67, 54, 0.3)',
   },
   
   // Bid control area styles - Ultra compact 28px height
