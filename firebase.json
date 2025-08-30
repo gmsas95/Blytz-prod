@@ -1,6 +1,7 @@
 {
   "database": {
-    "rules": "database.rules.json"
+    "rules": "database.rules.json",
+    "instance": "blytz-e9935-default-rtdb"
   },
   "firestore": {
     "rules": "firestore.rules",

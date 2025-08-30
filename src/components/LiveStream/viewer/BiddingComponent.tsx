@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { theme } from '../../../config/theme';
 import { Bid } from '../../../types/models';
+import { calculateNextBidAmount } from '../../../utils/bidding';
 
 interface BiddingComponentProps {
   latestBid: Bid | null;
@@ -15,7 +16,7 @@ const BiddingComponent: React.FC<BiddingComponentProps> = ({
   onSetBidLimit,
 }) => {
   const currentBid = latestBid?.amount ?? 0;
-  const nextBidAmount = currentBid + 2; // Example increment from screenshot
+  const nextBidAmount = calculateNextBidAmount(currentBid, 5);
 
   const handlePlaceBid = () => {
     onPlaceBid(nextBidAmount);

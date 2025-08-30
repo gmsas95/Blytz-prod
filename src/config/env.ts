@@ -8,6 +8,7 @@ interface Extra {
   firebaseMessagingSenderId: string;
   firebaseAppId: string;
   firebaseMeasurementId?: string;
+  firebaseDatabaseURL?: string;
   fiuuMerchantId?: string;
   fiuuMerchantKey?: string;
   fiuuVerifyKey?: string;
@@ -24,6 +25,7 @@ export const env: Extra = {
     process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
   firebaseAppId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
   firebaseMeasurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
+  firebaseDatabaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || 'https://blytz-e9935-default-rtdb.asia-southeast1.firebasedatabase.app',
   fiuuMerchantId: process.env.EXPO_PUBLIC_FIUU_MERCHANT_ID || '',
   fiuuMerchantKey: process.env.EXPO_PUBLIC_FIUU_MERCHANT_KEY || '',
   fiuuVerifyKey: process.env.EXPO_PUBLIC_FIUU_VERIFY_KEY || '',

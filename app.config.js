@@ -34,16 +34,16 @@ module.exports = {
     },
     extra: {
       firebaseApiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-      firebaseAuthDomain: "",
-      firebaseProjectId: "blytz-e9935",
-      firebaseStorageBucket: "blytz-e9935.firebasestorage.app",
-      firebaseMessagingSenderId: "929292925225",
-      firebaseAppId: "1:929292925225:android:e2a212d3c8dd80cde09f38",
-      firebaseMeasurementId: "",
-      curlecApiKey: "",
-      logisticsApiKey: "",
+      firebaseAuthDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
+      firebaseProjectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "blytz-e9935",
+      firebaseStorageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "blytz-e9935.firebasestorage.app",
+      firebaseMessagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "929292925225",
+      firebaseAppId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:929292925225:android:e2a212d3c8dd80cde09f38",
+      firebaseMeasurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "",
+      curlecApiKey: process.env.EXPO_PUBLIC_CURLEC_API_KEY || "",
+      logisticsApiKey: process.env.EXPO_PUBLIC_LOGISTICS_API_KEY || "",
       eas: {
-        projectId: "1666420c-3b08-4c61-9091-128e291ebd07"
+        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID || "1666420c-3b08-4c61-9091-128e291ebd07"
       }
     },
     owner: "gmsas95",
