@@ -5,16 +5,13 @@ import React, {
   useContext,
   useCallback,
 } from 'react';
-import {
-  FirebaseAuthTypes,
-} from '@react-native-firebase/auth';
+import { User as FirebaseUser, AuthCredential, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SellerRegistrationData, SellerProfile } from '../types/models/seller';
 import { User, ShippingAddress } from '../types/models';
-import { firestore, app } from '../config/firebase.config';
-import { firebaseAuth, authRN } from '../services/firebase/auth';
+import { firestore, functions, auth } from '../services/firebase/firebase';
 
 interface SellerApplication {
   businessName: string;
@@ -88,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     
     try {
       // Check if user is a seller
-      const token = await authRN().currentUser?.getIdTokenResult();
+      const token = await auth.currentUser?.getIdTokenResult();
       setIsSeller(token?.claims?.seller === true);
 
       if (token?.claims?.seller === true) {
@@ -123,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     checkUser();
 
-    const unsubscribe = firebaseAuth.onAuthStateChanged(async (firebaseUser: FirebaseAuthTypes.User | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         try {
           // Get user profile
@@ -178,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     try {
       console.log('Attempting login with email:', email);
-      await firebaseAuth.signInWithEmailAndPassword(email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       console.log('Login successful');
     } catch (error) {
       console.error('Login error:', error);
@@ -192,14 +189,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     async (email: string, password: string, displayName?: string) => {
       setLoading(true);
       try {
-        const userCredential: FirebaseAuthTypes.UserCredential = await firebaseAuth.createUserWithEmailAndPassword(
+        const userCredential: UserCredential = await createUserWithEmailAndPassword(auth,
             email,
             password,
           );
 
         if (userCredential.user) {
           if (displayName) {
-            await firebaseAuth.updateProfile(userCredential.user, { displayName });
+            await updateProfile(userCredential.user, { displayName });
           }
 
           const newUser: User = {
@@ -225,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     async (sellerData: SellerRegistrationData) => {
       setLoading(true);
       try {
-        const userCredential: FirebaseAuthTypes.UserCredential = await firebaseAuth.createUserWithEmailAndPassword(
+        const userCredential: UserCredential = await createUserWithEmailAndPassword(auth,
           sellerData.email,
           sellerData.password,
         );
@@ -326,7 +323,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = useCallback(async () => {
     setLoading(true);
     try {
-      await firebaseAuth.signOut();
+      await signOut(auth);
       setIsSeller(false);
       setSellerProfile(null);
     } finally {
@@ -338,7 +335,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     async (profile: { displayName?: string | null; photoURL?: string | null; }) => {
       setLoading(true);
       try {
-        const currentUser = authRN().currentUser;
+        const currentUser = auth.currentUser;
         if (currentUser) {
           const profileToUpdate: { displayName?: string; photoURL?: string } = {};
           if (profile.displayName !== undefined && profile.displayName !== null) {
@@ -347,7 +344,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (profile.photoURL !== undefined && profile.photoURL !== null) {
             profileToUpdate.photoURL = profile.photoURL;
           }
-          await firebaseAuth.updateProfile(currentUser, profileToUpdate);
+          await updateProfile(currentUser, profileToUpdate);
           const userDocRef = doc(firestore, 'users', currentUser.uid);
           await updateDoc(userDocRef, profile);
           
@@ -368,12 +365,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const reauthenticate = useCallback(
-    async (credential: FirebaseAuthTypes.AuthCredential) => {
+    async (credential: AuthCredential) => {
       setLoading(true);
       try {
-        const currentUser = authRN().currentUser;
+        const currentUser = auth.currentUser;
         if (currentUser) {
-          await currentUser.reauthenticateWithCredential(credential);
+          await reauthenticateWithCredential(currentUser, credential);
         }
       } finally {
         setLoading(false);
@@ -385,9 +382,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const updatePassword = useCallback(async (password: string) => {
     setLoading(true);
     try {
-      const currentUser = authRN().currentUser;
+      const currentUser = auth.currentUser;
       if (currentUser) {
-        await currentUser.updatePassword(password);
+        await updatePassword(currentUser, password);
       }
     } finally {
       setLoading(false);
@@ -397,7 +394,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const sendPasswordResetEmail = useCallback(async (email: string) => {
     setLoading(true);
     try {
-      await firebaseAuth.sendPasswordResetEmail(email);
+      await sendPasswordResetEmail(auth, email);
     } finally {
       setLoading(false);
     }

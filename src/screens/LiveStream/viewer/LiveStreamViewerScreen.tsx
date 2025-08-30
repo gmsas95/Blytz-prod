@@ -7,8 +7,9 @@ import LiveStreamItem from '../../../components/LiveStream/viewer/LiveStreamItem
 import { useAuth } from '../../../context/AuthContext';
 import { useRoute } from '@react-navigation/native';
 import { validateBidAmount, calculateNextBidAmount } from '../../../utils/bidding';
-import { getDatabase, ref, push, serverTimestamp, onValue } from 'firebase/database';
-import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
+import { ref, push, serverTimestamp, onValue } from 'firebase/database';
+import { firestore, database } from '../../../services/firebase/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 interface ChatMessage {
   id: string;
@@ -157,7 +158,6 @@ const LiveStreamViewerScreen = () => {
 
     // Listen for real-time bid updates from Firestore via Cloud Functions
     // Cloud Functions will update Firestore, we'll listen to Firestore directly
-    const firestore = getFirestore();
     const auctionRef = doc(firestore, 'auctions', streamId);
     
     const unsubscribeAuction = onSnapshot(auctionRef, (doc) => {
@@ -172,7 +172,6 @@ const LiveStreamViewerScreen = () => {
     });
     
     // Also listen to Realtime Database for immediate bid feedback
-    const database = getDatabase();
     const bidsRef = ref(database, `auctions/${streamId}/bids`);
     
     const unsubscribeBids = onValue(bidsRef, (snapshot) => {

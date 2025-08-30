@@ -1,13 +1,22 @@
-import firebase from '@react-native-firebase/app';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-import storage from '@react-native-firebase/storage';
-import functions from '@react-native-firebase/functions';
-import database from '@react-native-firebase/database';
+import { initializeApp } from 'firebase/app';
+import { getDatabase } from 'firebase/database';
+import { getFirestore } from 'firebase/firestore';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import { FIREBASE_CONFIG } from '../../config/firebase';
 
-// We don't need to initialize the app manually with this library
-// as it's handled by the native configuration (google-services.json)
+// Initialize Firebase app with explicit configuration
+const app = initializeApp(FIREBASE_CONFIG);
 
-const app = firebase.app();
+// Initialize Firebase Auth with AsyncStorage
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+const firestore = getFirestore(app);
+const database = getDatabase(app, FIREBASE_CONFIG.databaseURL);
+const storage = getStorage(app);
+const functions = getFunctions(app);
 
-export {app, auth, firestore, storage, functions, database};
+export { app, auth, firestore, database, storage, functions };

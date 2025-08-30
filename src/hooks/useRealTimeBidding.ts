@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-import { getDatabase, ref, onValue, off, push, set, query, limitToLast, orderByChild, runTransaction } from 'firebase/database';
+import { ref, onValue, off, push, set, query, limitToLast, orderByChild, runTransaction } from 'firebase/database';
 import { useAuth } from '../context/AuthContext';
-
-const database = getDatabase();
+import { database } from '../services/firebase/firebase';
 
 export interface Bid {
   id: string;

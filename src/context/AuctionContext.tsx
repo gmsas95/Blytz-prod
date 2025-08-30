@@ -1,8 +1,6 @@
 import React, {createContext, useContext, useCallback} from 'react';
-import firestore, {
-  FirebaseFirestoreTypes,
-} from '@react-native-firebase/firestore';
-import database from '@react-native-firebase/database';
+import { Timestamp } from 'firebase/firestore';
+import { firestore, database } from '../services/firebase/firebase';
 
 export interface Auction {
   id: string;

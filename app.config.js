@@ -40,6 +40,7 @@ module.exports = {
       firebaseMessagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "929292925225",
       firebaseAppId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:929292925225:android:e2a212d3c8dd80cde09f38",
       firebaseMeasurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "",
+      firebaseDatabaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || "https://blytz-e9935-default-rtdb.asia-southeast1.firebasedatabase.app",
       curlecApiKey: process.env.EXPO_PUBLIC_CURLEC_API_KEY || "",
       logisticsApiKey: process.env.EXPO_PUBLIC_LOGISTICS_API_KEY || "",
       eas: {
