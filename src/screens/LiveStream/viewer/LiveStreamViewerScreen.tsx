@@ -8,6 +8,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useRoute } from '@react-navigation/native';
 import { validateBidAmount, calculateNextBidAmount } from '../../../utils/bidding';
 import { getDatabase, ref, push, serverTimestamp, onValue } from 'firebase/database';
+import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
 
 interface ChatMessage {
   id: string;
@@ -154,24 +155,44 @@ const LiveStreamViewerScreen = () => {
 
     connectToStream();
 
-    // Listen for real-time bid updates
+    // Listen for real-time bid updates from Firestore via Cloud Functions
+    // Cloud Functions will update Firestore, we'll listen to Firestore directly
+    const firestore = getFirestore();
+    const auctionRef = doc(firestore, 'auctions', streamId);
+    
+    const unsubscribeAuction = onSnapshot(auctionRef, (doc) => {
+      if (doc.exists()) {
+        const auctionData = doc.data();
+        setProduct(prev => ({
+          ...prev,
+          currentBid: auctionData.currentPrice || prev.startingPrice || 0,
+          // Add other auction fields as needed
+        }));
+      }
+    });
+    
+    // Also listen to Realtime Database for immediate bid feedback
     const database = getDatabase();
     const bidsRef = ref(database, `auctions/${streamId}/bids`);
     
     const unsubscribeBids = onValue(bidsRef, (snapshot) => {
       const bids = snapshot.val();
       if (bids) {
-        const bidValues = Object.values(bids) as any[];
-        const highestBid = Math.max(...bidValues.map(bid => bid.amount));
-        setProduct(prev => ({
-          ...prev,
-          currentBid: highestBid,
-        }));
+        const bidArray = Object.values(bids) as any[];
+        const latestBid = bidArray.sort((a, b) => b.timestamp - a.timestamp)[0];
+        if (latestBid) {
+          // Update display temporarily while Cloud Functions process
+          setProduct(prev => ({
+            ...prev,
+            currentBid: Math.max(latestBid.amount, prev.currentBid || 0),
+          }));
+        }
       }
     });
 
     return () => {
       disconnectFromRoom();
+      unsubscribeAuction();
       unsubscribeBids();
     };
   }, [streamId, user?.uid]);
@@ -201,12 +222,8 @@ const LiveStreamViewerScreen = () => {
   const handlePlaceBid = async (amount: number) => {
     if (!user) return;
     
-    console.log('Placing bid:', amount);
-    
-    // Clear any previous error
     setErrorMessage('');
     
-    // Validate bid amount is greater than current
     const currentHighestBid = product.currentBid || product.startingPrice || 0;
     const validation = validateBidAmount(amount, currentHighestBid, 5);
     
@@ -227,7 +244,9 @@ const LiveStreamViewerScreen = () => {
         timestamp: serverTimestamp()
       });
       
-      // Add bid message to chat
+      // Let Cloud Functions handle price updates via Firestore
+      // Remove client-side price setting to prevent conflicts
+      
       const bidMessage: ChatMessage = {
         id: Date.now().toString(),
         user: user?.displayName || 'Bidder',
@@ -236,7 +255,6 @@ const LiveStreamViewerScreen = () => {
       };
       setChatMessages(prev => [...prev, bidMessage]);
     } catch (error) {
-      console.error('Error placing bid:', error);
       setErrorMessage('Failed to place bid. Please try again.');
     }
   };
