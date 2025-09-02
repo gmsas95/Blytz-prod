@@ -110,7 +110,7 @@ export const notifyAdminStatusChange = onDocumentUpdated(
  */
 /*
 async function sendSlackNotification(notification: any) {
-  const webhookUrl = functions.config().slack?.webhook_url;
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
   if (!webhookUrl) return;
 
   const message = {

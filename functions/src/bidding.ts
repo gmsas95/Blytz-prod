@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin';
-// import {onValueCreated} from 'firebase-functions/v2/database';
+import {onCreate} from 'firebase-functions/v2/database';
 import {onCall, HttpsError} from 'firebase-functions/v2/https';
 import {FieldValue} from 'firebase-admin/firestore';
 import {logger} from 'firebase-functions';
@@ -65,11 +65,11 @@ async function checkRateLimit(userId: string): Promise<{allowed: boolean; cooldo
         rateLimit.hourlyCount >= RATE_LIMIT_CONFIG.maxBidsPerHour ||
         rateLimit.dailyCount >= RATE_LIMIT_CONFIG.maxBidsPerDay) {
       
-      // Apply cooldown
-      rateLimit.cooldownUntil = now + (RATE_LIMIT_CONFIG.cooldownPeriod * 60);
+      // Apply cooldown - cooldownPeriod is already in milliseconds
+      rateLimit.cooldownUntil = now + RATE_LIMIT_CONFIG.cooldownPeriod;
       await rateLimitRef.set(rateLimit);
       
-      return {allowed: false, cooldown: RATE_LIMIT_CONFIG.cooldownPeriod * 60};
+      return {allowed: false, cooldown: RATE_LIMIT_CONFIG.cooldownPeriod};
     }
 
     // Update counters
@@ -171,146 +171,7 @@ function validateBidAmount(amount: number, currentPrice: number, startingPrice: 
   return {valid: true};
 }
 
-// Process new bid with comprehensive validation
-// export const processNewBid = onValueCreated(
-//   {ref: 'auctions/{auctionId}/bids/{bidId}', region: 'asia-southeast1'},
-//   async event => {
-//     const bid = event.data.val();
-//     const {auctionId, bidId} = event.params;
 
-//     logger.info(`Processing bid ${bidId} for auction ${auctionId}`, {bid});
-
-//     try {
-//       // Get auction data
-//       const auctionDoc = await firestore.collection('auctions').doc(auctionId).get();
-//       if (!auctionDoc.exists) {
-//         logger.error(`Auction ${auctionId} not found`);
-//         await event.data.ref.remove();
-//         return;
-//       }
-
-//       const auctionData = auctionDoc.data();
-//       if (!auctionData) {
-//         logger.error(`Auction data missing for ${auctionId}`);
-//         await event.data.ref.remove();
-//         return;
-//       }
-
-//       // Check if auction is active
-//       if (auctionData.status !== 'live') {
-//         logger.warn(`Auction ${auctionId} is not live`);
-//         await event.data.ref.remove();
-//         return;
-//       }
-
-//       // Check if auction hasn't ended
-//       const now = Date.now();
-//       const endTime = auctionData.endTime?.toMillis() || 0;
-//       if (now > endTime - BID_VALIDATION.timeoutBuffer) {
-//         logger.warn(`Auction ${auctionId} has ended or is ending`);
-//         await event.data.ref.remove();
-//         return;
-//       }
-
-//       // Validate bid amount
-//       const validation = validateBidAmount(bid.amount, auctionData.currentPrice, auctionData.startingPrice);
-//       if (!validation.valid) {
-//         logger.warn(`Invalid bid amount: ${validation.reason}`);
-//         await event.data.ref.remove();
-//         return;
-//       }
-
-//       // Check rate limiting
-//       const rateLimit = await checkRateLimit(bid.userId);
-//       if (!rateLimit.allowed) {
-//         logger.warn(`Rate limit exceeded for user ${bid.userId}`);
-//         await event.data.ref.remove();
-//         return;
-//       }
-
-//       // Check fraud detection
-//       const fraudCheck = await checkForFraud(bid.userId, bid.amount, auctionId);
-//       if (!fraudCheck.allowed) {
-//         logger.warn(`Fraud check failed for user ${bid.userId}: ${fraudCheck.reason}`);
-//         await event.data.ref.remove();
-//         return;
-//       }
-
-//       // Update auction with new bid
-//       const batch = firestore.batch();
-      
-//       // Update auction document
-//       batch.update(auctionDoc.ref, {
-//         currentPrice: bid.amount,
-//         lastBidderId: bid.userId,
-//         lastBidTime: FieldValue.serverTimestamp(),
-//         bidCount: FieldValue.increment(1),
-//         updatedAt: FieldValue.serverTimestamp()
-//       });
-
-//       // Add to bid history
-//       const bidHistoryRef = firestore.collection('auctions').doc(auctionId).collection('bidHistory').doc(bidId);
-//       batch.set(bidHistoryRef, {
-//         ...bid,
-//         status: 'confirmed',
-//         processedAt: FieldValue.serverTimestamp()
-//       });
-
-//       // Update user statistics
-//       const userProfileRef = firestore.collection('userProfiles').doc(bid.userId);
-//       batch.update(userProfileRef, {
-//         totalBids: FieldValue.increment(1),
-//         lastBidAt: FieldValue.serverTimestamp(),
-//         updatedAt: FieldValue.serverTimestamp()
-//       });
-
-//       await batch.commit();
-
-//       // Move bid from pending to confirmed in Realtime Database
-//       if (event.data.ref.parent) {
-//         await event.data.ref.parent.child(bidId).update({
-//           status: 'confirmed',
-//           confirmedAt: now
-//         });
-//       }
-
-//       // Update Realtime Database current price for real-time updates
-//       await db.ref(`auctions/${auctionId}`).update({
-//         currentPrice: bid.amount,
-//         lastBidderId: bid.userId,
-//         lastBidTime: now
-//       });
-
-//       // Check for anti-sniping
-//       if (auctionData.antiSnipingEnabled) {
-//         const timeRemaining = endTime - now;
-//         const antiSnipingExtension = 60000; // 1 minute extension
-        
-//         if (timeRemaining < antiSnipingExtension) {
-//           const newEndTime = new Date(now + antiSnipingExtension);
-//           await auctionDoc.ref.update({
-//             endTime: admin.firestore.Timestamp.fromDate(newEndTime),
-//             extendedByAntiSniping: true,
-//             extensionCount: (auctionData.extensionCount || 0) + 1
-//           });
-          
-//           logger.info(`Auction ${auctionId} extended by anti-sniping rule`);
-//         }
-//       }
-
-//       logger.info(`Successfully processed bid ${bidId} for auction ${auctionId}`);
-
-//     } catch (error) {
-//       logger.error(`Error processing bid ${bidId}:`, error);
-//       // Attempt to clean up failed bid
-//       try {
-//         await event.data.ref.remove();
-//       } catch (cleanupError) {
-//         logger.error('Error cleaning up failed bid:', cleanupError);
-//       }
-//     }
-//   }
-// );
 
 // Place bid callable function for client-side usage
 export const placeBid = onCall(
@@ -332,53 +193,83 @@ export const placeBid = onCall(
     }
 
     try {
-      // Get auction data
-      const auctionDoc = await firestore.collection('auctions').doc(auctionId).get();
-      if (!auctionDoc.exists) {
-        throw new HttpsError('not-found', 'Auction not found');
-      }
+      const auctionRef = firestore.collection('auctions').doc(auctionId);
 
-      const auctionData = auctionDoc.data();
-      if (!auctionData || auctionData.status !== 'live') {
-        throw new HttpsError('failed-precondition', 'Auction is not live');
-      }
-
-      // Validate bid amount
-      const validation = validateBidAmount(amount, auctionData.currentPrice, auctionData.startingPrice);
-      if (!validation.valid) {
-        throw new HttpsError('invalid-argument', validation.reason || 'Invalid bid amount');
-      }
-
-      // Check rate limiting
-      const rateLimit = await checkRateLimit(userId);
-      if (!rateLimit.allowed) {
-        throw new HttpsError('resource-exhausted', 'Rate limit exceeded', {cooldown: rateLimit.cooldown});
-      }
-
-      // Check fraud detection
-      const fraudCheck = await checkForFraud(userId, amount, auctionId);
-      if (!fraudCheck.allowed) {
-        throw new HttpsError('permission-denied', fraudCheck.reason || 'Fraud check failed');
-      }
-
-      // Create bid in Realtime Database
+      // Use RTDB transaction for atomic bid processing
       const bidId = db.ref(`auctions/${auctionId}/bids`).push().key;
       const bidData = {
         userId,
         amount,
         timestamp: Date.now(),
-        status: 'pending'
+        status: 'confirmed'
       };
 
+      // Atomic RTDB transaction for real-time bidding
+      await db.ref(`auctions/${auctionId}`).transaction((currentData) => {
+        if (!currentData) {
+          return null; // Auction doesn't exist
+        }
+
+        const auctionData = currentData;
+        if (auctionData.status !== 'live') {
+          return null; // Auction not live
+        }
+
+        const currentPrice = auctionData.currentPrice || auctionData.startingPrice || 0;
+        if (amount <= currentPrice) {
+          return null; // Bid not higher than current
+        }
+
+        // Update auction data atomically
+        auctionData.currentPrice = amount;
+        auctionData.lastBidderId = userId;
+        auctionData.lastBidTime = Date.now();
+        auctionData.bidCount = (auctionData.bidCount || 0) + 1;
+        auctionData.updatedAt = Date.now();
+
+        return auctionData;
+      });
+
+      // Add bid to RTDB
       await db.ref(`auctions/${auctionId}/bids/${bidId}`).set(bidData);
 
-      return {
-        success: true,
-        bidId,
-        message: 'Bid placed successfully',
-        currentPrice: auctionData.currentPrice
-      };
+      // Firestore updates (non-critical, can be async)
+      try {
+        await firestore.runTransaction(async (transaction) => {
+          const auctionDoc = await transaction.get(auctionRef);
+          if (!auctionDoc.exists) {
+            return;
+          }
 
+          const auctionData = auctionDoc.data();
+          if (!auctionData || auctionData.status !== 'live') {
+            return;
+          }
+
+          transaction.update(auctionRef, {
+            currentPrice: amount,
+            lastBidderId: userId,
+            lastBidTime: FieldValue.serverTimestamp(),
+            bidCount: FieldValue.increment(1),
+            updatedAt: FieldValue.serverTimestamp()
+          });
+
+          const bidHistoryRef = firestore.collection('auctions').doc(auctionId).collection('bidHistory').doc(bidId!);
+          transaction.set(bidHistoryRef, bidData);
+
+          const userProfileRef = firestore.collection('userProfiles').doc(userId);
+          transaction.update(userProfileRef, {
+            totalBids: FieldValue.increment(1),
+            lastBidAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp()
+          });
+        });
+      } catch (firestoreError) {
+        // Log Firestore error but don't fail the bid - RTDB is the source of truth
+        logger.warn('Firestore update failed, but RTDB bid succeeded:', firestoreError);
+      }
+
+    return { success: true, message: 'Bid placed successfully' };
     } catch (error) {
       if (error instanceof HttpsError) {
         throw error;
@@ -386,6 +277,146 @@ export const placeBid = onCall(
       
       logger.error('Error placing bid:', error);
       throw new HttpsError('internal', 'Failed to place bid');
+  }
+);
+
+// Real-time Database bid processing for live auctions - Deployed version
+export const processRealtimeBid = onCreate(
+  {
+    region: 'asia-southeast1',
+    ref: 'auctions/{auctionId}/bids/{bidId}',
+  },
+  async (event) => {
+    const auctionId = event.params.auctionId;
+    const bidId = event.params.bidId;
+    const bidData = event.data.val();
+    
+    try {
+      logger.info(`Processing realtime bid for auction ${auctionId}: ${bidId}`, bidData);
+      
+      if (!bidData || !bidData.userId || !bidData.amount) {
+        logger.error('Invalid bid data structure', bidData);
+        return;
+      }
+
+      // Update Realtime Database auction state for real-time updates
+      const auctionRef = db.ref(`auctions/${auctionId}`);
+      const auctionSnapshot = await auctionRef.once('value');
+      const auctionData = auctionSnapshot.val();
+      
+      if (!auctionData) {
+        logger.error(`Auction ${auctionId} not found`);
+        return;
+      }
+
+      // Validate bid amount
+      const currentPrice = auctionData.currentPrice || auctionData.startingPrice || 0;
+      if (bidData.amount <= currentPrice) {
+        logger.warn(`Bid amount ${bidData.amount} not higher than current ${currentPrice}`);
+        return;
+      }
+
+      // Use RTDB transaction for atomic bid processing
+      await auctionRef.transaction((currentData) => {
+        if (!currentData) {
+          return null; // Auction doesn't exist
+        }
+
+        const auctionData = currentData;
+        const currentPrice = auctionData.currentPrice || auctionData.startingPrice || 0;
+        
+        if (bidData.amount <= currentPrice) {
+          return null; // Bid not higher than current
+        }
+
+        // Update auction data atomically
+        auctionData.currentPrice = bidData.amount;
+        auctionData.lastBidderId = bidData.userId;
+        auctionData.lastBidTime = admin.database.ServerValue.TIMESTAMP;
+        auctionData.bidCount = (auctionData.bidCount || 0) + 1;
+
+        return auctionData;
+      });
+
+      // Also update Firestore for persistence and checkout
+      const firestoreAuctionRef = firestore.collection('auctions').doc(auctionId);
+      await firestoreAuctionRef.update({
+        currentPrice: bidData.amount,
+        lastBidderId: bidData.userId,
+        lastBidTime: FieldValue.serverTimestamp(),
+        bidCount: FieldValue.increment(1),
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      // Store bid in Firestore for audit trail
+      const firestoreBidRef = firestore.collection('auctions').doc(auctionId).collection('bids').doc(bidId);
+      await firestoreBidRef.set({
+        ...bidData,
+        timestamp: FieldValue.serverTimestamp()
+      });
+
+      logger.info(`Successfully processed realtime bid: ${bidData.amount} by ${bidData.userId}`);
+
+    } catch (error) {
+      logger.error('Error processing realtime bid:', error);
+    }
+  }
+);
+
+// Finalize auction when it ends - Deployed version
+export const finalizeAuction = onCreate(
+  {
+    region: 'asia-southeast1',
+    ref: 'auctions/{auctionId}/status',
+  },
+  async (event) => {
+    const auctionId = event.params.auctionId;
+    const status = event.data.val();
+    
+    if (status === 'ended') {
+      try {
+        const auctionRef = db.ref(`auctions/${auctionId}`);
+        const auctionSnapshot = await auctionRef.once('value');
+        const auctionData = auctionSnapshot.val();
+        
+        if (!auctionData || !auctionData.lastBidderId) {
+          logger.info(`Auction ${auctionId} ended with no winner`);
+          return;
+        }
+
+        // Get final bid details
+        const bidsRef = db.ref(`auctions/${auctionId}/bids`);
+        const bidsSnapshot = await bidsRef.orderByChild('timestamp').limitToLast(1).once('value');
+        const finalBid = Object.values(bidsSnapshot.val() || {})[0] || {};
+
+        // Update Firestore with final winner and price
+        const firestoreAuctionRef = firestore.collection('auctions').doc(auctionId);
+        await firestoreAuctionRef.update({
+          status: 'ended',
+          winnerId: auctionData.lastBidderId,
+          finalPrice: auctionData.currentPrice,
+          endedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+
+        // Create order for winner
+        const orderData = {
+          auctionId,
+          userId: auctionData.lastBidderId,
+          amount: auctionData.currentPrice,
+          status: 'pending_payment',
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        };
+
+        const orderRef = firestore.collection('orders').doc();
+        await orderRef.set(orderData);
+
+        logger.info(`Auction ${auctionId} finalized - Winner: ${auctionData.lastBidderId}, Price: ${auctionData.currentPrice}, Order ID: ${orderRef.id}`);
+
+      } catch (error) {
+        logger.error('Error finalizing auction:', error);
+      }
     }
   }
 );

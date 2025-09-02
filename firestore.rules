@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function hasRole(role, auth) {
+      return auth != null && auth.token != null && role in auth.token && auth.token[role] == true;
+    }
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+    match /auctions/{auctionId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
+        (request.auth.uid == resource.data.sellerId || 
+         hasRole('admin', request.auth));
+    }
+    match /auctions/{auctionId}/bids/{bidId} {
+      allow read: if true;
+      allow write: if request.auth.uid == request.resource.data.userId;
+    }
+    match /sellers/{sellerId} {
+      allow read: if true;
+      allow write: if request.auth.uid == sellerId;
+    }
+    match /sellerApplications/{applicationId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || hasRole('admin', request.auth));
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
+        (request.auth.uid == resource.data.userId || hasRole('admin', request.auth));
+    }
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth.uid == request.resource.data.sellerId;
+    }
+    match /orders/{orderId} {
+      allow read, write: if request.auth.uid == request.resource.data.userId;
+    }
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth.uid == request.resource.data.userId;
+    }
+    match /rate_limits/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+    match /webhook_nonces/{nonce} {
+      allow read, write: if false;
+    }
+    match /liveStreams/{streamId} {
+      allow read: if true;
+      allow write: if request.auth.uid == request.resource.data.sellerId;
+    }
+    match /featuredStreams/{streamId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

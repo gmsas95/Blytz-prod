@@ -17,6 +17,6 @@ const auth = initializeAuth(app, {
 const firestore = getFirestore(app);
 const database = getDatabase(app, FIREBASE_CONFIG.databaseURL);
 const storage = getStorage(app);
-const functions = getFunctions(app);
+const functions = getFunctions(app, 'asia-southeast1');
 
 export { app, auth, firestore, database, storage, functions };

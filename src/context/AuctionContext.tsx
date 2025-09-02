@@ -1,6 +1,7 @@
 import React, {createContext, useContext, useCallback} from 'react';
 import { Timestamp } from 'firebase/firestore';
-import { firestore, database } from '../services/firebase/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { firestore, functions } from '../services/firebase/firebase';
 
 export interface Auction {
   id: string;
@@ -66,17 +67,18 @@ export const AuctionProvider: React.FC<{children: React.ReactNode}> = ({
   const placeBid = useCallback(
     async (auctionId: string, amount: number, userId: string) => {
       try {
-        const bidRef = database().ref(`auctions/${auctionId}/bids`).push();
-        await bidRef.set({
-          userId,
+        const placeBidFunction = httpsCallable(functions, 'placeBid');
+        const result = await placeBidFunction({
+          auctionId,
           amount,
-          timestamp: firestore.FieldValue.serverTimestamp(),
+          userId,
         });
-        // Optionally, update Firestore with the new current price
-        await firestore()
-          .collection('auctions')
-          .doc(auctionId)
-          .update({currentPrice: amount});
+        
+        const data = result.data as { success: boolean; error?: string };
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to place bid');
+        }
+        
         console.log(
           `Bid of ${amount} placed on auction ${auctionId} by ${userId}`,
         );

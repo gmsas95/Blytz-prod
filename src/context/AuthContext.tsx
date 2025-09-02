@@ -57,7 +57,7 @@ interface AuthContextType {
   }) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   updateProfile: (profile: { displayName?: string | null; photoURL?: string | null; }) => Promise<void>;
-  reauthenticate: (credential: FirebaseAuthTypes.AuthCredential) => Promise<void>;
+  reauthenticate: (credential: AuthCredential) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   refreshSellerProfile: () => Promise<void>;
@@ -298,7 +298,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         // Call Cloud Function to submit application
-        const functions = getFunctions(app);
         const submitSellerApplication = httpsCallable(functions, 'submitSellerApplication');
         const result = await submitSellerApplication(sellerApplication);
         

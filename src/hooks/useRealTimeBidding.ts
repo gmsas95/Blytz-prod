@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-import { ref, onValue, off, push, set, query, limitToLast, orderByChild, runTransaction } from 'firebase/database';
+import { ref, onValue, off, query, limitToLast, orderByChild, push, set, runTransaction } from 'firebase/database';
 import { useAuth } from '../context/AuthContext';
 import { database } from '../services/firebase/firebase';
 
@@ -159,7 +159,7 @@ export const useRealTimeBidding = ({
     listenersRef.current.push(() => off(rateLimitRef, 'value', unsubscribe));
   }, [user?.uid]);
 
-  // Place a bid with enhanced security
+  // Place a bid using Realtime Database for real-time processing
   const placeBid = useCallback(async (amount: number): Promise<{success: boolean; error?: string}> => {
     if (!user?.uid || !auctionId) {
       return { success: false, error: 'User not authenticated' };
@@ -169,111 +169,43 @@ export const useRealTimeBidding = ({
       return { success: false, error: 'Auction not loaded' };
     }
 
-    // Enhanced validation
-    if (auctionState.status !== 'live') {
-      return { success: false, error: 'Auction is not live' };
+    // Validate bid amount
+    const minBid = getNextMinimumBid();
+    if (amount < minBid) {
+      return { success: false, error: `Bid must be at least $${minBid.toFixed(2)}` };
     }
 
-    if (Date.now() > auctionState.endTime) {
-      return { success: false, error: 'Auction has ended' };
-    }
-
-    if (amount <= auctionState.currentPrice) {
-      return { success: false, error: 'Bid must be higher than current price' };
-    }
-
-    // Minimum bid increment validation
-    const minIncrement = Math.max(1, Math.ceil(auctionState.currentPrice * 0.05)); // 5% or RM1 minimum
-    if (amount < auctionState.currentPrice + minIncrement) {
-      return { success: false, error: `Bid must be at least RM${minIncrement} above current price` };
-    }
-
-    // Maximum bid amount validation (prevent spam/abuse)
-    const maxBidMultiplier = 100; // Maximum 100x starting price
-    if (amount > auctionState.startingPrice * maxBidMultiplier) {
-      return { success: false, error: 'Bid amount exceeds reasonable limit' };
-    }
-
-    // Rate limiting check
+    // Check cooldown
     if (cooldownUntil > Date.now()) {
-      return { success: false, error: 'Please wait before placing another bid' };
-    }
-
-    // Prevent seller from bidding on their own auctions
-    if (user.uid === auctionState.sellerId) {
-      return { success: false, error: 'Sellers cannot bid on their own auctions' };
+      const remaining = Math.ceil((cooldownUntil - Date.now()) / 1000);
+      return { success: false, error: `Please wait ${remaining}s before bidding` };
     }
 
     setIsPlacingBid(true);
     setError(null);
 
     try {
-      // Atomic bid placement using transaction
+      // Use Realtime Database for immediate bid processing
       const bidsRef = ref(database, `auctions/${auctionId}/bids`);
-      const auctionRef = ref(database, `auctions/${auctionId}`);
-      
-      // Create bid with enhanced tracking
-      const bidData = {
+      const newBid = {
         userId: user.uid,
-        amount: Math.round(amount * 100) / 100, // Round to 2 decimal places
+        amount: Math.round(amount * 100) / 100,
         timestamp: Date.now(),
-        status: 'confirmed',
-        ipAddress: 'client-ip', // This would be set server-side
-        userAgent: 'client-user-agent', // This would be set server-side
-        authenticityToken: await generateBidToken(user.uid, auctionId, amount) // Anti-tamper token
+        status: 'pending'
       };
 
-      // Use push for real-time updates
-      const newBidRef = push(bidsRef);
-      await set(newBidRef, bidData);
-
-      // Update auction state atomically
-      await runTransaction(ref(database, `auctions/${auctionId}`), (currentData) => {
-        if (currentData && amount > currentData.currentPrice) {
-          currentData.currentPrice = amount;
-          currentData.lastBidderId = user.uid;
-          currentData.lastBidTime = Date.now();
-          return currentData;
-        }
-        return null; // Transaction will fail if bid is not valid
-      });
-
-      // Set cooldown period (5 seconds)
-      const cooldownRef = ref(database, `rateLimits/${user.uid}`);
-      await set(cooldownRef, {
-        cooldownUntil: Date.now() + 5000,
-        lastBidAt: Date.now(),
-        auctionId: auctionId
-      });
-
-      return { success: true };
+      await push(bidsRef, newBid);
+      
+      return { success: true, message: 'Bid placed successfully' };
     } catch (error) {
       console.error('Error placing bid:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to place bid';
-      
-      // Log bid attempt for security analysis
-      const bidAttemptRef = ref(database, `security/bidAttempts/${Date.now()}`);
-      await set(bidAttemptRef, {
-        userId: user.uid,
-        auctionId: auctionId,
-        amount: amount,
-        timestamp: Date.now(),
-        error: errorMessage,
-        success: false
-      });
-      
       return { success: false, error: errorMessage };
     } finally {
       setIsPlacingBid(false);
     }
-  }, [user?.uid, auctionId, auctionState, cooldownUntil])
+  }, [user?.uid, auctionId, auctionState, cooldownUntil, getNextMinimumBid]);
 
-  // Helper function to generate bid authenticity token
-  const generateBidToken = async (userId: string, auctionId: string, amount: number): Promise<string> => {
-    // Simple hash-based token - in production, use proper cryptographic signing
-    const tokenData = `${userId}:${auctionId}:${amount}:${Date.now()}`;
-    return btoa(tokenData);
-  };
 
   // Initialize subscriptions
   useEffect(() => {

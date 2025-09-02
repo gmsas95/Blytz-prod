@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { validateString, validateEmail } from './validations';
 
 const firestore = admin.firestore();
 
@@ -26,7 +27,7 @@ interface DocumentUpload {
 /**
  * Creates a new seller profile when a user registers as a seller
  */
-export const createSellerProfile = onCall(async (request) => {
+export const createSellerProfile = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -44,9 +45,14 @@ export const createSellerProfile = onCall(async (request) => {
   } = request.data;
 
   // Validate required fields
-  if (!businessName || !taxId || !bankAccount || !businessAddress) {
-    throw new HttpsError('invalid-argument', 'Missing required fields');
-  }
+  validateString(businessName, 'businessName');
+  validateString(taxId, 'taxId');
+  validateString(bankAccount?.accountNumber, 'bankAccount.accountNumber');
+  validateString(bankAccount?.bankName, 'bankAccount.bankName');
+  validateString(bankAccount?.accountHolder, 'bankAccount.accountHolder');
+  validateString(businessAddress, 'businessAddress');
+  validateString(phoneNumber, 'phoneNumber');
+  validateEmail(email);
 
   try {
     // Create seller document
@@ -89,16 +95,21 @@ export const createSellerProfile = onCall(async (request) => {
 /**
  * Updates seller verification status
  */
-export const updateSellerVerification = onCall(async (request) => {
+export const updateSellerVerification = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
+  const adminUid = request.auth.uid;
   const { sellerId, isVerified, verificationNotes } = request.data;
-  
-  // TODO: Add admin check here
 
   try {
+    const adminUserRecord = await admin.auth().getUser(adminUid);
+    const customClaims = adminUserRecord.customClaims || {};
+    if (customClaims.admin !== true) {
+      throw new HttpsError('permission-denied', 'Only admins can update seller verification.');
+    }
+
     await firestore.collection('sellers').doc(sellerId).update({
       isVerified,
       verificationStatus: isVerified ? 'verified' : 'rejected',
@@ -116,7 +127,7 @@ export const updateSellerVerification = onCall(async (request) => {
 /**
  * Gets seller dashboard data
  */
-export const getSellerDashboard = onCall(async (request) => {
+export const getSellerDashboard = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -195,7 +206,7 @@ export const getSellerDashboard = onCall(async (request) => {
 /**
  * Uploads business documents for verification
  */
-export const uploadBusinessDocuments = onCall(async (request) => {
+export const uploadBusinessDocuments = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -242,13 +253,24 @@ export const uploadBusinessDocuments = onCall(async (request) => {
 /**
  * Updates seller profile
  */
-export const updateSellerProfile = onCall(async (request) => {
+export const updateSellerProfile = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
   const userId = request.auth.uid;
   const updates: any = request.data;
+
+  // Validate updates
+  if (updates.businessName) {
+    validateString(updates.businessName, 'businessName');
+  }
+  if (updates.phoneNumber) {
+    validateString(updates.phoneNumber, 'phoneNumber');
+  }
+  if (updates.email) {
+    validateEmail(updates.email);
+  }
 
   try {
     updates.updatedAt = FieldValue.serverTimestamp();
@@ -265,7 +287,7 @@ export const updateSellerProfile = onCall(async (request) => {
 /**
  * Toggles seller live mode status
  */
-export const toggleSellerLiveMode = onCall(async (request) => {
+export const toggleSellerLiveMode = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -318,7 +340,7 @@ export const toggleSellerLiveMode = onCall(async (request) => {
 /**
  * Gets current seller live mode status
  */
-export const getSellerLiveStatus = onCall(async (request) => {
+export const getSellerLiveStatus = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }

@@ -7,8 +7,8 @@ import LiveStreamItem from '../../../components/LiveStream/viewer/LiveStreamItem
 import { useAuth } from '../../../context/AuthContext';
 import { useRoute } from '@react-navigation/native';
 import { validateBidAmount, calculateNextBidAmount } from '../../../utils/bidding';
-import { ref, push, serverTimestamp, onValue } from 'firebase/database';
-import { firestore, database } from '../../../services/firebase/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { firestore, functions } from '../../../services/firebase/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 interface ChatMessage {
@@ -139,6 +139,7 @@ const LiveStreamViewerScreen = () => {
   const chatRef = useRef<FlatList>(null);
   
   const streamId = (route.params as any)?.streamId || 'test-stream';
+  const auctionId = 'test-auction-001'; // Map stream to auction ID
 
   useEffect(() => {
     const connectToStream = async () => {
@@ -156,9 +157,9 @@ const LiveStreamViewerScreen = () => {
 
     connectToStream();
 
-    // Listen for real-time bid updates from Firestore via Cloud Functions
-    // Cloud Functions will update Firestore, we'll listen to Firestore directly
-    const auctionRef = doc(firestore, 'auctions', streamId);
+    // Listen for real-time bid updates from RTDB via Cloud Functions
+    // Cloud Functions will update RTDB, we'll listen to RTDB for live updates
+    const auctionRef = doc(firestore, 'auctions', auctionId);
     
     const unsubscribeAuction = onSnapshot(auctionRef, (doc) => {
       if (doc.exists()) {
@@ -171,28 +172,11 @@ const LiveStreamViewerScreen = () => {
       }
     });
     
-    // Also listen to Realtime Database for immediate bid feedback
-    const bidsRef = ref(database, `auctions/${streamId}/bids`);
-    
-    const unsubscribeBids = onValue(bidsRef, (snapshot) => {
-      const bids = snapshot.val();
-      if (bids) {
-        const bidArray = Object.values(bids) as any[];
-        const latestBid = bidArray.sort((a, b) => b.timestamp - a.timestamp)[0];
-        if (latestBid) {
-          // Update display temporarily while Cloud Functions process
-          setProduct(prev => ({
-            ...prev,
-            currentBid: Math.max(latestBid.amount, prev.currentBid || 0),
-          }));
-        }
-      }
-    });
+    // No need to listen to Realtime Database directly - Cloud Functions handle updates
 
     return () => {
       disconnectFromRoom();
       unsubscribeAuction();
-      unsubscribeBids();
     };
   }, [streamId, user?.uid]);
 
@@ -233,18 +217,17 @@ const LiveStreamViewerScreen = () => {
     }
     
     try {
-      const database = getDatabase();
-      const bidsRef = ref(database, `auctions/${streamId}/bids`);
-      
-      await push(bidsRef, {
+      const placeBidFunction = httpsCallable(functions, 'placeBid');
+      const result = await placeBidFunction({
+        auctionId: auctionId,
         amount: amount,
-        userId: user.uid,
-        userName: user.displayName || user.email,
-        timestamp: serverTimestamp()
+        userId: user.uid
       });
-      
-      // Let Cloud Functions handle price updates via Firestore
-      // Remove client-side price setting to prevent conflicts
+
+      const data = result.data as { success: boolean; error?: string };
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to place bid');
+      }
       
       const bidMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -264,16 +247,17 @@ const LiveStreamViewerScreen = () => {
     console.log('Buy now clicked:', product.price);
     
     try {
-      const database = getDatabase();
-      const purchasesRef = ref(database, `auctions/${streamId}/purchases`);
-      
-      await push(purchasesRef, {
+      const buyNowFunction = httpsCallable(functions, 'buyNow');
+      const result = await buyNowFunction({
+        auctionId: streamId,
         amount: product.price,
-        userId: user.uid,
-        userName: user.displayName || user.email,
-        type: 'buy_now',
-        timestamp: serverTimestamp()
+        userId: user.uid
       });
+
+      const data = result.data as { success: boolean; error?: string };
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to process purchase');
+      }
       
       // Add purchase message to chat
       const purchaseMessage: ChatMessage = {

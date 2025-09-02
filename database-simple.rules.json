@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "auctions": {
+      "$auctionId": {
+        ".read": true,
+        ".write": "auth != null && (auth.uid == newData.child('sellerId').val() || auth.token.admin === true)",
+        "bids": {
+          ".write": "auth != null",
+          "$bidId": {
+            ".validate": "newData.hasChildren(['userId', 'amount', 'timestamp'])",
+            "userId": {
+              ".validate": "newData.isString() && newData.val() === auth.uid"
+            },
+            "amount": {
+              ".validate": "newData.isNumber() && newData.val() > 0"
+            },
+            "timestamp": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            }
+          }
+        }
+      }
+    }
+  }
+}

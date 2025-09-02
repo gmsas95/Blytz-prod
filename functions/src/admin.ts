@@ -12,7 +12,7 @@ const db = admin.firestore();
  * Sets a user's role (admin, seller, etc.) and updates their custom claims and Firestore document.
  * This is an admin-only function.
  */
-export const setUserRole = onCall(async (request) => {
+export const setUserRole = onCall({ region: 'asia-southeast1' }, async (request) => {
   // 1. Authentication and Admin Check
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");

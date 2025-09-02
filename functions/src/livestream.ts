@@ -7,7 +7,7 @@ import { FieldValue } from "firebase-admin/firestore";
 const livekitApiKey = process.env.LIVEKIT_API_KEY || 'demo-key';
 const livekitApiSecret = process.env.LIVEKIT_API_SECRET || 'demo-secret';
 
-export const generateLiveKitToken = onCall(async (request) => {
+export const generateLiveKitToken = onCall({ region: 'asia-southeast1' }, async (request) => {
   // Ensure the user is authenticated
   if (!request.auth) {
     throw new HttpsError(
@@ -37,7 +37,7 @@ export const generateLiveKitToken = onCall(async (request) => {
   };
 });
 
-export const createStream = onCall(async (request) => {
+export const createStream = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError(
       "unauthenticated",
@@ -110,7 +110,7 @@ export const createStream = onCall(async (request) => {
   }
 });
 
-export const startStream = onCall(async (request) => {
+export const startStream = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError(
       "unauthenticated",
@@ -150,7 +150,7 @@ export const startStream = onCall(async (request) => {
   }
 });
 
-export const endStream = onCall(async (request) => {
+export const endStream = onCall({ region: 'asia-southeast1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError(
       "unauthenticated",

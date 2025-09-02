@@ -24,7 +24,7 @@ export interface SellerApplicationData {
  * Submit seller application
  * Creates a new seller application with pending status
  */
-export const submitSellerApplication = onCall(async (request) => {
+export const submitSellerApplication = onCall({ region: 'asia-southeast1' }, async (request) => {
   try {
     // Verify authentication
     if (!request.auth) {
@@ -103,7 +103,7 @@ export const submitSellerApplication = onCall(async (request) => {
  * Review seller application (for admin use)
  * Approves or rejects a seller application
  */
-export const reviewSellerApplication = onCall(async (request) => {
+export const reviewSellerApplication = onCall({ region: 'asia-southeast1' }, async (request) => {
   try {
     // Verify admin authentication
     if (!request.auth) {
@@ -168,7 +168,7 @@ export const reviewSellerApplication = onCall(async (request) => {
 /**
  * Get seller applications for admin review
  */
-export const getSellerApplications = onCall(async (request) => {
+export const getSellerApplications = onCall({ region: 'asia-southeast1' }, async (request) => {
   try {
     // Verify admin authentication
     if (!request.auth) {
