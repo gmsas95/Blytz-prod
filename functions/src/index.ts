@@ -8,6 +8,8 @@ admin.initializeApp({
 
 // Import bidding functions
 export * from './bidding';
+// Import Redis-based bid function
+export * from './bidHandler';
 // Import seller onboarding functions
 export * from './sellerOnboarding';
 // Import seller functions

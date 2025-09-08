@@ -277,6 +277,7 @@ export const placeBid = onCall(
       
       logger.error('Error placing bid:', error);
       throw new HttpsError('internal', 'Failed to place bid');
+    }
   }
 );
 
